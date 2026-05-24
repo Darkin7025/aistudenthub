@@ -1,0 +1,21 @@
+# ============================================================
+# HOW TO USE:
+# 1. Copy this file: application-local.properties.example
+#    → rename to: application-local.properties
+# 2. Fill in your real values below
+# 3. application-local.properties is gitignored (never committed)
+# ============================================================
+
+# DATABASE — SQL Server
+spring.datasource.url=jdbc:sqlserver://localhost:1444;databaseName=ai_study_hub;trustServerCertificate=true;encrypt=false
+spring.datasource.username=YOUR_DB_USERNAME
+spring.datasource.password=YOUR_DB_PASSWORD
+
+# JWT Secret (base64 encoded, min 256-bit recommended)
+jwt.secret=YOUR_JWT_SECRET_HERE
+jwt.access-token-expiration=900000
+
+# MAIL — Gmail SMTP
+# Go to Google Account → Security → App Passwords → Generate one
+spring.mail.username=YOUR_GMAIL@gmail.com
+spring.mail.password=YOUR_GMAIL_APP_PASSWORD
