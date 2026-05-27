@@ -16,7 +16,15 @@ public enum ErrorCode {
 
     // General
     VALIDATION_ERROR("Dữ liệu đầu vào không hợp lệ", HttpStatus.BAD_REQUEST),
-    INTERNAL_ERROR("Lỗi hệ thống, vui lòng thử lại sau", HttpStatus.INTERNAL_SERVER_ERROR);
+    INTERNAL_ERROR("Lỗi hệ thống, vui lòng thử lại sau", HttpStatus.INTERNAL_SERVER_ERROR),
+
+    // Document
+    FILE_TOO_LARGE("File vượt quá dung lượng cho phép (10MB)", HttpStatus.BAD_REQUEST),
+    INVALID_FILE_TYPE("Loại file không được hỗ trợ", HttpStatus.BAD_REQUEST),
+    EMPTY_FILE("File không được rỗng", HttpStatus.BAD_REQUEST),
+    DOCUMENT_NOT_FOUND("Tài liệu không tồn tại", HttpStatus.NOT_FOUND),
+    UPLOAD_FAILED("Upload file thất bại, vui lòng thử lại", HttpStatus.INTERNAL_SERVER_ERROR),
+    FORBIDDEN_ACCESS("Bạn không có quyền thực hiện thao tác này", HttpStatus.FORBIDDEN);
 
     private final String message;
     private final HttpStatus httpStatus;
