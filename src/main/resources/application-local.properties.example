@@ -19,3 +19,9 @@ jwt.access-token-expiration=900000
 # Go to Google Account → Security → App Passwords → Generate one
 spring.mail.username=YOUR_GMAIL@gmail.com
 spring.mail.password=YOUR_GMAIL_APP_PASSWORD
+
+# CLOUDINARY — Cloud File Storage
+# Sign up free at https://cloudinary.com
+cloudinary.cloud-name=YOUR_CLOUD_NAME
+cloudinary.api-key=YOUR_API_KEY
+cloudinary.api-secret=YOUR_API_SECRET

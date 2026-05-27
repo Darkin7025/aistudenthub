@@ -45,7 +45,7 @@ public class AuthService {
     private long accessTokenExpiration; // ms
 
     // ----------------------------------------------------------------
-    // 1. ĐĂNG KÝ → hash password → lưu DB
+    // 1. ĐĂNG KÝ → lưu password plain text → lưu DB
     // ----------------------------------------------------------------
     @Transactional
     public MessageResponse register(RegisterRequest request) {
@@ -56,7 +56,7 @@ public class AuthService {
         User user = User.builder()
                 .fullName(request.getFullName())
                 .email(request.getEmail().toLowerCase())
-                .passwordHash(passwordEncoder.encode(request.getPassword())) // BCrypt hash
+                .password(request.getPassword()) // plain text
                 .build();
 
         userRepository.save(user);
@@ -149,8 +149,8 @@ public class AuthService {
         User user = userRepository.findById(resetToken.getUserId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        // Cập nhật password hash mới
-        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        // Cập nhật password mới (plain text)
+        user.setPassword(request.getNewPassword());
         userRepository.save(user);
 
         // Đánh dấu token đã sử dụng (không dùng lại được)
