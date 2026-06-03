@@ -1,6 +1,7 @@
 package com.example.swp391.aistudenthub.feature.document.controller;
 
 import com.example.swp391.aistudenthub.common.dto.ApiResponse;
+import com.example.swp391.aistudenthub.common.dto.MessageResponse;
 import com.example.swp391.aistudenthub.feature.auth.entity.User;
 import com.example.swp391.aistudenthub.feature.document.dto.request.UploadDocumentRequest;
 import com.example.swp391.aistudenthub.feature.document.dto.response.DocumentResponse;
@@ -92,5 +93,20 @@ public class DocumentController {
 
         DocumentResponse doc = documentService.getById(id, currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success(doc));
+    }
+
+    // ── 4. DELETE ────────────────────────────────────────────────────────────
+
+    /**
+     * Xóa mềm 1 tài liệu.
+     * Chỉ chủ sở hữu tài liệu mới có quyền xóa.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<MessageResponse>> deleteById(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User currentUser) {
+
+        MessageResponse result = documentService.deleteById(id, currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.success(result));
     }
 }
