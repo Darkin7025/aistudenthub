@@ -49,7 +49,7 @@ public class AuthService {
     // ----------------------------------------------------------------
     @Transactional
     public MessageResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail().toLowerCase())) {
+        if (userRepository.existsByEmailAndDeletedAtIsNull(request.getEmail().toLowerCase())) {
             throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
@@ -119,6 +119,8 @@ public class AuthService {
 
             String rawToken = UUID.randomUUID().toString();
             String hashedToken = sha256(rawToken);
+
+            resetTokenRepository.deleteByUserId(user.getId());
 
             PasswordResetToken resetToken = PasswordResetToken.builder()
                     .userId(user.getId())

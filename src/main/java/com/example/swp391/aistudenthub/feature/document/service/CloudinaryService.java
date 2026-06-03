@@ -23,19 +23,17 @@ public class CloudinaryService {
 
     private final Cloudinary cloudinary;
 
-
     @SuppressWarnings("unchecked")
     public Map<String, String> upload(MultipartFile file) {
         try {
             Map<?, ?> result = cloudinary.uploader().upload(
                     file.getBytes(),
                     ObjectUtils.asMap(
-                            "resource_type", "auto",   // tự detect: image / video / raw
-                            "folder",        "documents" // tổ chức file theo folder
-                    )
-            );
+                            "resource_type", "auto", // tự detect: image / video / raw
+                            "folder", "documents" // tổ chức file theo folder
+                    ));
 
-            String url      = (String) result.get("secure_url");
+            String url = (String) result.get("secure_url");
             String publicId = (String) result.get("public_id");
 
             log.info("Cloudinary upload success: publicId={}", publicId);
@@ -47,13 +45,11 @@ public class CloudinaryService {
         }
     }
 
-
     public void delete(String publicId, String resourceType) {
         try {
             cloudinary.uploader().destroy(
                     publicId,
-                    ObjectUtils.asMap("resource_type", resourceType)
-            );
+                    ObjectUtils.asMap("resource_type", resourceType));
             log.info("Cloudinary delete success: publicId={}", publicId);
         } catch (IOException e) {
             // Log nhưng không throw — file có thể đã bị xóa thủ công
