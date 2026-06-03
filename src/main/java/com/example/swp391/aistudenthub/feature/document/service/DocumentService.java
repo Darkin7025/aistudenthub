@@ -6,6 +6,7 @@ import com.example.swp391.aistudenthub.feature.document.dto.request.UploadDocume
 import com.example.swp391.aistudenthub.feature.document.dto.response.DocumentResponse;
 import com.example.swp391.aistudenthub.feature.document.entity.Document;
 import com.example.swp391.aistudenthub.feature.document.repository.DocumentRepository;
+import com.example.swp391.aistudenthub.common.dto.MessageResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -67,6 +68,7 @@ public class DocumentService {
                 .fileSize(file.getSize())
                 .fileType(file.getContentType())
                 .storagePublicId(uploadResult.get("public_id"))
+                .storageKey(uploadResult.get("public_id"))
                 .storageBucket("cloudinary")
                 .isPublic(true)
                 .build();
@@ -102,6 +104,32 @@ public class DocumentService {
             throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
         }
         return toResponse(doc);
+    }
+
+    /**
+     * Xóa mềm tài liệu theo ID. Chỉ chủ sở hữu mới có quyền xóa.
+     */
+    @Transactional
+    public void delete(UUID documentId, UUID userId) {
+        Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
+                .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+
+        if (!doc.getUserId().equals(userId)) {
+            throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+
+        doc.setDeletedAt(java.time.OffsetDateTime.now());
+        documentRepository.save(doc);
+        log.info("Document soft-deleted: id={}, user={}", documentId, userId);
+    }
+
+    /**
+     * Xóa mềm tài liệu theo ID và trả về MessageResponse.
+     */
+    @Transactional
+    public MessageResponse deleteById(UUID documentId, UUID userId) {
+        this.delete(documentId, userId);
+        return new MessageResponse("Tài liệu đã được xóa thành công");
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

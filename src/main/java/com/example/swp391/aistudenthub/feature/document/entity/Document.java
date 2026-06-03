@@ -52,6 +52,9 @@ public class Document {
     @Column(name = "storage_public_id", nullable = false, length = 500)
     private String storagePublicId;
 
+    @Column(name = "storage_key", nullable = false, length = 500)
+    private String storageKey;
+
     @Column(name = "is_public", nullable = false)
     @Builder.Default
     private boolean isPublic = true;
