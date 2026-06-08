@@ -42,11 +42,8 @@ public class AuthService {
     private final EmailService emailService;
 
     @Value("${jwt.access-token-expiration}")
-    private long accessTokenExpiration; // ms
+    private long accessTokenExpiration;
 
-    // ----------------------------------------------------------------
-    // 1. ĐĂNG KÝ → lưu password plain text → lưu DB
-    // ----------------------------------------------------------------
     @Transactional
     public MessageResponse register(RegisterRequest request) {
         if (userRepository.existsByEmailAndDeletedAtIsNull(request.getEmail().toLowerCase())) {
@@ -63,11 +60,8 @@ public class AuthService {
         return new MessageResponse("Đăng ký thành công! Vui lòng đăng nhập.");
     }
 
-    // ----------------------------------------------------------------
-    // 2. ĐĂNG NHẬP → kiểm tra password → generate JWT → trả token về FE
-    // ----------------------------------------------------------------
+
     public AuthResponse login(LoginRequest request) {
-        // Kiểm tra credentials
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -79,7 +73,6 @@ public class AuthService {
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
-        // Load user từ DB
         User user = userRepository.findByEmailAndDeletedAtIsNull(request.getEmail().toLowerCase())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
@@ -87,30 +80,22 @@ public class AuthService {
             throw new AppException(ErrorCode.ACCOUNT_DISABLED);
         }
 
-        // Generate JWT token
         String token = jwtUtil.generateAccessToken(user);
 
-        // Trả token về FE
         return AuthResponse.builder()
                 .token(token)
                 .expiresIn(accessTokenExpiration / 1000)
                 .build();
     }
 
-    // ----------------------------------------------------------------
-    // 3. ĐĂNG XUẤT → FE xóa token phía client
-    //    Server trả 200 OK (stateless — không cần lưu trạng thái)
-    // ----------------------------------------------------------------
+
     public MessageResponse logout() {
         return new MessageResponse("Đăng xuất thành công.");
     }
 
-    // ----------------------------------------------------------------
-    // 4. QUÊN MẬT KHẨU → gửi email chứa link reset
-    // ----------------------------------------------------------------
+
     @Transactional
     public MessageResponse forgotPassword(ForgotPasswordRequest request) {
-        // Luôn trả 200 dù email không tồn tại (tránh tiết lộ email trong hệ thống)
         Optional<User> userOpt = userRepository.findByEmailAndDeletedAtIsNull(
                 request.getEmail().toLowerCase());
 
@@ -135,9 +120,7 @@ public class AuthService {
         return new MessageResponse("Nếu email tồn tại trong hệ thống, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.");
     }
 
-    // ----------------------------------------------------------------
-    // 5. ĐẶT LẠI MẬT KHẨU → kiểm tra token → cập nhật password mới
-    // ----------------------------------------------------------------
+
     @Transactional
     public MessageResponse resetPassword(ResetPasswordRequest request) {
         String hash = sha256(request.getToken());
@@ -151,20 +134,16 @@ public class AuthService {
         User user = userRepository.findById(resetToken.getUserId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        // Cập nhật password mới (đã hash)
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
-        // Đánh dấu token đã sử dụng (không dùng lại được)
         resetToken.setUsedAt(OffsetDateTime.now());
         resetTokenRepository.save(resetToken);
 
         return new MessageResponse("Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập lại.");
     }
 
-    // ----------------------------------------------------------------
-    // HELPER — hash token bằng SHA-256 trước khi lưu DB
-    // ----------------------------------------------------------------
+
     private String sha256(String input) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
