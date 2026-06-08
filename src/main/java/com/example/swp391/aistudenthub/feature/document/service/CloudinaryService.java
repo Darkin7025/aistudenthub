@@ -26,18 +26,43 @@ public class CloudinaryService {
     @SuppressWarnings("unchecked")
     public Map<String, String> upload(MultipartFile file) {
         try {
+            java.io.File tempFile = java.io.File.createTempFile("upload_", "_" + file.getOriginalFilename());
+            file.transferTo(tempFile);
+
+            // Xác định resource_type phù hợp
+            String resourceType = "auto";
+            String contentType = file.getContentType();
+            String fileName = file.getOriginalFilename();
+            
+            // Upload PDF as "raw" to bypass Cloudinary's default PDF delivery restrictions
+            if ("application/pdf".equals(contentType) || 
+                (fileName != null && fileName.toLowerCase().endsWith(".pdf"))) {
+                resourceType = "raw";
+                log.info("Uploading PDF as raw type to bypass restrictions: {}", fileName);
+            }
+
             Map<?, ?> result = cloudinary.uploader().upload(
-                    file.getBytes(),
+                    tempFile,
                     ObjectUtils.asMap(
-                            "resource_type", "auto", // tự detect: image / video / raw
-                            "folder", "documents" // tổ chức file theo folder
+                            "resource_type", resourceType,
+                            "folder", "documents",
+                            "use_filename", true,
+                            "unique_filename", true,
+                            "access_mode", "public" // đảm bảo file có thể truy cập công khai
                     ));
+            
+            tempFile.delete();
 
             String url = (String) result.get("secure_url");
             String publicId = (String) result.get("public_id");
+            String actualResourceType = (String) result.get("resource_type");
 
-            log.info("Cloudinary upload success: publicId={}", publicId);
-            return Map.of("url", url, "public_id", publicId);
+            log.info("Cloudinary upload success: publicId={}, resourceType={}", publicId, actualResourceType);
+            return Map.of(
+                "url", url, 
+                "public_id", publicId,
+                "resource_type", actualResourceType != null ? actualResourceType : "auto"
+            );
 
         } catch (IOException e) {
             log.error("Cloudinary upload failed", e);
@@ -54,6 +79,18 @@ public class CloudinaryService {
         } catch (IOException e) {
             // Log nhưng không throw — file có thể đã bị xóa thủ công
             log.warn("Cloudinary delete failed for publicId={}: {}", publicId, e.getMessage());
+        }
+    }
+
+    public String getSignedUrl(String publicId, String resourceType) {
+        try {
+            return cloudinary.url()
+                    .resourceType(resourceType)
+                    .signed(true)
+                    .generate(publicId);
+        } catch (Exception e) {
+            log.error("Failed to generate signed url for {}", publicId, e);
+            return null;
         }
     }
 }

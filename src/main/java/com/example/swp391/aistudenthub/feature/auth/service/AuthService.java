@@ -56,7 +56,7 @@ public class AuthService {
         User user = User.builder()
                 .fullName(request.getFullName())
                 .email(request.getEmail().toLowerCase())
-                .password(request.getPassword()) // plain text
+                .password(passwordEncoder.encode(request.getPassword()))
                 .build();
 
         userRepository.save(user);
@@ -151,8 +151,8 @@ public class AuthService {
         User user = userRepository.findById(resetToken.getUserId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        // Cập nhật password mới (plain text)
-        user.setPassword(request.getNewPassword());
+        // Cập nhật password mới (hashed)
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
         // Đánh dấu token đã sử dụng (không dùng lại được)
