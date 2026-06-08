@@ -31,7 +31,7 @@ public class User implements UserDetails {
     @Column(name = "password", nullable = false, length = 255)
     private String password;
 
-    @Column(name = "full_name", nullable = false, columnDefinition = "NVARCHAR(150)")
+    @Column(name = "full_name", nullable = false, length = 150)
     private String fullName;
 
     @Column(name = "avatar_url", length = 1000)

@@ -1,0 +1,95 @@
+### ============================================================
+### AI Study Hub — Auth API Test File
+### Dùng với VS Code Extension: REST Client (humao.rest-client)
+### Hoặc import vào Postman
+### ============================================================
+
+@baseUrl = http://localhost:8080/api/v1/auth
+@contentType = application/json
+
+### ============================================================
+### 1. ĐĂNG KÝ TÀI KHOẢN
+### ============================================================
+POST {{baseUrl}}/register
+Content-Type: {{contentType}}
+
+{
+  "fullName": "Nguyễn Văn A",
+  "email": "nguyenvana@gmail.com",
+  "password": "Password@123"
+}
+
+### ============================================================
+### 2. ĐĂNG NHẬP — copy token từ response để dùng ở bước tiếp theo
+### ============================================================
+# @name loginResponse
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+  "email": "nguyenvana@gmail.com",
+  "password": "Password@123"
+}
+
+### ============================================================
+### 3. GỌI API CÓ BẢO VỆ (thay <TOKEN> bằng token từ bước 2)
+### ============================================================
+@token = <DÁN_TOKEN_VÀO_ĐÂY>
+
+GET http://localhost:8080/api/v1/test/me
+Authorization: Bearer {{token}}
+
+### ============================================================
+### 4. ĐĂNG XUẤT
+### ============================================================
+POST {{baseUrl}}/logout
+Authorization: Bearer {{token}}
+
+### ============================================================
+### 5. QUÊN MẬT KHẨU
+### ============================================================
+POST {{baseUrl}}/forgot-password
+Content-Type: {{contentType}}
+
+{
+  "email": "nguyenvana@gmail.com"
+}
+
+### ============================================================
+### 6. ĐẶT LẠI MẬT KHẨU (dùng token nhận từ email)
+### ============================================================
+POST {{baseUrl}}/reset-password
+Content-Type: {{contentType}}
+
+{
+  "token": "<TOKEN_TRONG_EMAIL>",
+  "newPassword": "NewPassword@456"
+}
+
+### ============================================================
+### TEST — Gọi API khi KHÔNG có token (phải trả 403)
+### ============================================================
+GET http://localhost:8080/api/v1/test/me
+
+### ============================================================
+### TEST — Đăng nhập sai mật khẩu (phải trả 401)
+### ============================================================
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+  "email": "nguyenvana@gmail.com",
+  "password": "SaiMatKhau123"
+}
+
+### ============================================================
+### TEST — Đăng ký email đã tồn tại (phải trả 409)
+### ============================================================
+POST {{baseUrl}}/register
+Content-Type: {{contentType}}
+
+{
+  "fullName": "Nguyễn Văn B",
+  "email": "nguyenvana@gmail.com",
+  "password": "Password@123"
+}

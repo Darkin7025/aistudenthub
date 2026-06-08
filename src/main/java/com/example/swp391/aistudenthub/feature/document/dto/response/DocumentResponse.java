@@ -27,25 +27,7 @@ public class DocumentResponse {
 
     private String fileType;
 
-    private String previewMode;
-
-    private Boolean aiSupported;
-
-    private com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility visibility;
-
-    private String subject;
-    
-    private String major;
-    
-    private String documentType;
-    
-    private com.example.swp391.aistudenthub.feature.document.enums.UploadStatus uploadStatus;
-    
-    private Integer uploadProgress;
-    
-    private UUID folderId;
+    private boolean isPublic;
 
     private OffsetDateTime createdAt;
-    
-    private String customMetadata;
 }
