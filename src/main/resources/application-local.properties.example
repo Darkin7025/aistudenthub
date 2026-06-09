@@ -6,8 +6,8 @@
 # 3. application-local.properties is gitignored (never committed)
 # ============================================================
 
-# DATABASE — SQL Server
-spring.datasource.url=jdbc:sqlserver://localhost:1444;databaseName=ai_study_hub;trustServerCertificate=true;encrypt=false
+# DATABASE — PostgreSQL
+spring.datasource.url=jdbc:postgresql://localhost:5432/ai_study_hub
 spring.datasource.username=YOUR_DB_USERNAME
 spring.datasource.password=YOUR_DB_PASSWORD
 
