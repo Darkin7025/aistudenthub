@@ -79,10 +79,10 @@
 			<scope>runtime</scope>
 		</dependency>
 
-		<!-- SQL Server -->
+		<!-- PostgreSQL -->
 		<dependency>
-			<groupId>com.microsoft.sqlserver</groupId>
-			<artifactId>mssql-jdbc</artifactId>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 
