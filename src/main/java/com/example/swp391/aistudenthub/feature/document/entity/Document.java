@@ -3,6 +3,9 @@ package com.example.swp391.aistudenthub.feature.document.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility;
+import com.example.swp391.aistudenthub.feature.document.enums.UploadStatus;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -25,10 +28,10 @@ public class Document {
     @Column(name = "uploaded_by", nullable = false, columnDefinition = "UNIQUEIDENTIFIER")
     private UUID userId;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false, columnDefinition = "NVARCHAR(255)")
     private String title;
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "NVARCHAR(MAX)")
     private String description;
 
 
@@ -36,11 +39,11 @@ public class Document {
     private String fileUrl;
 
   
-    @Column(name = "file_name", nullable = false, length = 255)
+    @Column(name = "file_name", nullable = false, columnDefinition = "NVARCHAR(255)")
     private String fileName;
 
     
-    @Column(name = "original_file_name", length = 255)
+    @Column(name = "original_file_name", columnDefinition = "NVARCHAR(255)")
     private String originalFileName;
 
     @Column(name = "file_size")
@@ -55,9 +58,40 @@ public class Document {
     @Column(name = "storage_key", nullable = false, length = 500)
     private String storageKey;
 
-    @Column(name = "is_public", nullable = false)
+    @Column(name = "storage_resource_type", length = 50)
+    private String storageResourceType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "visibility", nullable = false)
     @Builder.Default
-    private boolean isPublic = true;
+    private DocumentVisibility visibility = DocumentVisibility.PRIVATE;
+
+    @Column(name = "subject", length = 255)
+    private String subject;
+
+    @Column(name = "major", length = 255)
+    private String major;
+
+    @Column(name = "document_type", length = 100)
+    private String documentType;
+
+    @Column(name = "folder_id", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID folderId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "upload_status")
+    @Builder.Default
+    private UploadStatus uploadStatus = UploadStatus.COMPLETED;
+
+    @Column(name = "upload_progress")
+    @Builder.Default
+    private Integer uploadProgress = 100;
+
+    @Column(name = "extracted_text", columnDefinition = "NVARCHAR(MAX)")
+    private String extractedText;
+
+    @Column(name = "custom_metadata", columnDefinition = "NVARCHAR(MAX)")
+    private String customMetadata;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
