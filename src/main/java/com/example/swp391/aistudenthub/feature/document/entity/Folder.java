@@ -23,11 +23,17 @@ public class Folder {
     @Column(name = "user_id", nullable = false, columnDefinition = "UNIQUEIDENTIFIER")
     private UUID userId;
 
-    @Column(nullable = false, length = 255)
+    @Column(name = "parent_id", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID parentId;
+
+    @Column(nullable = false, columnDefinition = "NVARCHAR(255)")
     private String name;
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "NVARCHAR(MAX)")
     private String description;
+
+    @Column(length = 50)
+    private String color;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
