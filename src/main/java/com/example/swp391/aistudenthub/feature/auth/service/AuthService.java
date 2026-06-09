@@ -6,11 +6,14 @@ import com.example.swp391.aistudenthub.common.dto.MessageResponse;
 import com.example.swp391.aistudenthub.feature.auth.dto.AuthResponse;
 import com.example.swp391.aistudenthub.feature.auth.dto.ForgotPasswordRequest;
 import com.example.swp391.aistudenthub.feature.auth.dto.LoginRequest;
+import com.example.swp391.aistudenthub.feature.auth.dto.RefreshTokenRequest;
 import com.example.swp391.aistudenthub.feature.auth.dto.RegisterRequest;
 import com.example.swp391.aistudenthub.feature.auth.dto.ResetPasswordRequest;
 import com.example.swp391.aistudenthub.feature.auth.entity.PasswordResetToken;
+import com.example.swp391.aistudenthub.feature.auth.entity.RefreshToken;
 import com.example.swp391.aistudenthub.feature.auth.entity.User;
 import com.example.swp391.aistudenthub.feature.auth.repository.PasswordResetTokenRepository;
+import com.example.swp391.aistudenthub.feature.auth.repository.RefreshTokenRepository;
 import com.example.swp391.aistudenthub.feature.auth.repository.UserRepository;
 import com.example.swp391.aistudenthub.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +39,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository resetTokenRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
@@ -44,6 +48,12 @@ public class AuthService {
     @Value("${jwt.access-token-expiration}")
     private long accessTokenExpiration;
 
+    @Value("${jwt.refresh-token-expiration}")
+    private long refreshTokenExpiration;
+
+    // ----------------------------------------------------------------
+    // 1. ĐĂNG KÝ → lưu password plain text → lưu DB
+    // ----------------------------------------------------------------
     @Transactional
     public MessageResponse register(RegisterRequest request) {
         if (userRepository.existsByEmailAndDeletedAtIsNull(request.getEmail().toLowerCase())) {
@@ -80,11 +90,67 @@ public class AuthService {
             throw new AppException(ErrorCode.ACCOUNT_DISABLED);
         }
 
-        String token = jwtUtil.generateAccessToken(user);
+        return buildAuthResponse(user);
+    }
+
+
+    // ----------------------------------------------------------------
+    // 2b. LÀM MỚI ACCESS TOKEN (Refresh Token Rotation)
+    // ----------------------------------------------------------------
+    @Transactional
+    public AuthResponse refreshToken(RefreshTokenRequest request) {
+        String hash = sha256(request.getRefreshToken());
+
+        RefreshToken stored = refreshTokenRepository.findByTokenHash(hash)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
+
+        if (stored.isRevoked()) {
+            throw new AppException(ErrorCode.TOKEN_REVOKED);
+        }
+        if (stored.isExpired()) {
+            throw new AppException(ErrorCode.INVALID_TOKEN);
+        }
+
+        // Rotate: revoke the current token
+        stored.setRevokedAt(OffsetDateTime.now());
+        refreshTokenRepository.save(stored);
+
+        User user = userRepository.findById(stored.getUserId())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (!user.isEnabled()) {
+            throw new AppException(ErrorCode.ACCOUNT_DISABLED);
+        }
+
+        return buildAuthResponse(user);
+    }
+
+
+    // ── Private helpers ──────────────────────────────────────────────────────
+
+    /**
+     * Generates a new access token + refresh token, persists the refresh token
+     * in the DB (hashed), and returns a fully-populated AuthResponse.
+     */
+    private AuthResponse buildAuthResponse(User user) {
+        String accessToken = jwtUtil.generateAccessToken(user);
+
+        // Generate an opaque refresh token (UUID-based)
+        String rawRefreshToken = UUID.randomUUID().toString();
+        String hashedRefresh   = sha256(rawRefreshToken);
+
+        RefreshToken refreshTokenEntity = RefreshToken.builder()
+                .userId(user.getId())
+                .tokenHash(hashedRefresh)
+                .expiresAt(OffsetDateTime.now().plusSeconds(refreshTokenExpiration / 1000))
+                .build();
+        refreshTokenRepository.save(refreshTokenEntity);
 
         return AuthResponse.builder()
-                .token(token)
+                .token(accessToken)
+                .refreshToken(rawRefreshToken)
                 .expiresIn(accessTokenExpiration / 1000)
+                .refreshExpiresIn(refreshTokenExpiration / 1000)
                 .build();
     }
 
