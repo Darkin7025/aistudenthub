@@ -270,8 +270,8 @@ public class DocumentService {
             }
             
             String signedUrl = cloudinaryService.getSignedUrl(
-                    doc.getStoragePublicId(), 
-                    doc.getStorageResourceType() != null ? doc.getStorageResourceType() : "image",
+                    doc.getStoragePublicId(),
+                    resolveResourceType(doc),
                     format
             );
             if (signedUrl != null) {
@@ -409,6 +409,27 @@ public class DocumentService {
                 || com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole());
     }
 
+    /**
+     * Determines the correct Cloudinary resource_type for signed URL generation.
+     * PDFs are uploaded as "raw" — must use "raw" when building the signed URL too.
+     * Falls back to the stored value, then derives from MIME type, then defaults to "image".
+     */
+    private String resolveResourceType(Document doc) {
+        if (doc.getStorageResourceType() != null) {
+            return doc.getStorageResourceType();
+        }
+        // Derive from MIME type for documents without stored resourceType (legacy rows)
+        String mime = doc.getFileType();
+        if ("application/pdf".equalsIgnoreCase(mime)) {
+            return "raw";
+        }
+        String fileName = doc.getOriginalFileName() != null ? doc.getOriginalFileName() : doc.getFileName();
+        if (fileName != null && fileName.toLowerCase().endsWith(".pdf")) {
+            return "raw";
+        }
+        return "image";
+    }
+
     @Transactional(readOnly = true)
     public ResponseEntity<byte[]> streamDocument(UUID documentId, com.example.swp391.aistudenthub.feature.auth.entity.User currentUser) {
         Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
@@ -428,8 +449,8 @@ public class DocumentService {
                 }
                 
                 String signedUrl = cloudinaryService.getSignedUrl(
-                        doc.getStoragePublicId(), 
-                        doc.getStorageResourceType() != null ? doc.getStorageResourceType() : "image",
+                        doc.getStoragePublicId(),
+                        resolveResourceType(doc),
                         format
                 );
                 if (signedUrl != null) {
