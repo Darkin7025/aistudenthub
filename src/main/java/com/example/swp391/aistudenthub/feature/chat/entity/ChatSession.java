@@ -25,13 +25,12 @@ public class ChatSession {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "UNIQUEIDENTIFIER")
     private UUID id;
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    @Column(name = "document_id", columnDefinition = "UNIQUEIDENTIFIER")
+    @Column(name = "document_id")
     private UUID documentId;
 
     @Column(length = 500)

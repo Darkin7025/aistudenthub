@@ -21,7 +21,6 @@ public class ChatMessage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "UNIQUEIDENTIFIER")
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -32,7 +31,7 @@ public class ChatMessage {
     @Column(name = "sender", nullable = false, length = 20)
     private MessageSender sender;
 
-    @Column(name = "message_content", columnDefinition = "NVARCHAR(MAX)", nullable = false)
+    @Column(name = "message_content", columnDefinition = "TEXT", nullable = false)
     private String message;
 
     @Column(name = "created_at", nullable = false, updatable = false)

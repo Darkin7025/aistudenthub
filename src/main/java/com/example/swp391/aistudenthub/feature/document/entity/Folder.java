@@ -17,19 +17,18 @@ public class Folder {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "UNIQUEIDENTIFIER")
     private UUID id;
 
-    @Column(name = "user_id", nullable = false, columnDefinition = "UNIQUEIDENTIFIER")
+    @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    @Column(name = "parent_id", columnDefinition = "UNIQUEIDENTIFIER")
+    @Column(name = "parent_id")
     private UUID parentId;
 
-    @Column(nullable = false, columnDefinition = "NVARCHAR(255)")
+    @Column(nullable = false, length = 255)
     private String name;
 
-    @Column(columnDefinition = "NVARCHAR(MAX)")
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(length = 50)
