@@ -21,17 +21,16 @@ public class Document {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "UNIQUEIDENTIFIER")
     private UUID id;
 
    
-    @Column(name = "uploaded_by", nullable = false, columnDefinition = "UNIQUEIDENTIFIER")
+    @Column(name = "uploaded_by", nullable = false)
     private UUID userId;
 
-    @Column(nullable = false, columnDefinition = "NVARCHAR(255)")
+    @Column(nullable = false, length = 255)
     private String title;
 
-    @Column(columnDefinition = "NVARCHAR(MAX)")
+    @Column(columnDefinition = "TEXT")
     private String description;
 
 
@@ -39,11 +38,11 @@ public class Document {
     private String fileUrl;
 
   
-    @Column(name = "file_name", nullable = false, columnDefinition = "NVARCHAR(255)")
+    @Column(name = "file_name", nullable = false, length = 255)
     private String fileName;
 
     
-    @Column(name = "original_file_name", columnDefinition = "NVARCHAR(255)")
+    @Column(name = "original_file_name", length = 255)
     private String originalFileName;
 
     @Column(name = "file_size")
@@ -75,7 +74,7 @@ public class Document {
     @Column(name = "document_type", length = 100)
     private String documentType;
 
-    @Column(name = "folder_id", columnDefinition = "UNIQUEIDENTIFIER")
+    @Column(name = "folder_id")
     private UUID folderId;
 
     @Enumerated(EnumType.STRING)
@@ -87,10 +86,10 @@ public class Document {
     @Builder.Default
     private Integer uploadProgress = 100;
 
-    @Column(name = "extracted_text", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "extracted_text", columnDefinition = "TEXT")
     private String extractedText;
 
-    @Column(name = "custom_metadata", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "custom_metadata", columnDefinition = "TEXT")
     private String customMetadata;
 
     @Column(name = "created_at", nullable = false, updatable = false)

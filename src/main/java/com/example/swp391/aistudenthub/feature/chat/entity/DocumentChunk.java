@@ -24,13 +24,12 @@ public class DocumentChunk {
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "UNIQUEIDENTIFIER")
     private UUID id;
     
     /**
      * ID của document gốc.
      */
-    @Column(name = "document_id", nullable = false, columnDefinition = "UNIQUEIDENTIFIER")
+    @Column(name = "document_id", nullable = false)
     private UUID documentId;
     
     /**
@@ -42,7 +41,7 @@ public class DocumentChunk {
     /**
      * Nội dung text của chunk.
      */
-    @Column(name = "content", nullable = false, columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
     
     /**
@@ -52,7 +51,7 @@ public class DocumentChunk {
      * Note: SQL Server 2025+ hỗ trợ vector type native,
      * nhưng để tương thích ta dùng NVARCHAR(MAX) + JSON.
      */
-    @Column(name = "embedding", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "embedding", columnDefinition = "TEXT")
     private String embedding;
     
     /**
