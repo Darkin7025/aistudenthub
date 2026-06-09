@@ -20,7 +20,6 @@ public class OpenApiConfig {
                         .title("AI Student Hub API")
                         .version("1.0")
                         .description("API documentation for AI Student Hub application"))
-                .addServersItem(new Server().url("http://localhost:8081").description("Local Server"))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .components(new Components()
                         .addSecuritySchemes(securitySchemeName,
