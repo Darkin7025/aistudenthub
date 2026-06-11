@@ -36,3 +36,8 @@ build/
 src/main/resources/application-local.properties
 src/main/resources/application-*.properties
 !src/main/resources/application.properties
+
+### Environment variables — never commit ###
+.env
+.env.*
+!.env.example

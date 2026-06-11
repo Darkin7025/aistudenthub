@@ -1,52 +1,53 @@
+-- ============================================================
 -- Migration: Add storage_resource_type column to documents table
--- Purpose: Store Cloudinary resource_type (image/raw/video) for proper deletion and management
+-- Database:  PostgreSQL (Render)
+-- Purpose:   Store Cloudinary resource_type (image/raw/video)
+--            for proper signed URL generation and deletion
+-- Run once:  psql $DATABASE_URL -f add-storage-resource-type.sql
+-- ============================================================
 
-USE ai_study_hub;
-GO
-
--- Add column if not exists
-IF NOT EXISTS (
-    SELECT * FROM sys.columns 
-    WHERE object_id = OBJECT_ID(N'dbo.documents') 
-    AND name = 'storage_resource_type'
-)
+-- Step 1: Add column if it does not already exist
+DO $$
 BEGIN
-    ALTER TABLE documents
-    ADD storage_resource_type VARCHAR(50) NULL;
-    
-    PRINT 'Column storage_resource_type added successfully';
-END
-ELSE
-BEGIN
-    PRINT 'Column storage_resource_type already exists';
-END
-GO
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name  = 'documents'
+          AND column_name = 'storage_resource_type'
+    ) THEN
+        ALTER TABLE documents
+            ADD COLUMN storage_resource_type VARCHAR(50) NULL;
 
--- Update existing PDF records to use 'image' resource type
--- This assumes PDFs uploaded before this migration were stored as 'raw' type
+        RAISE NOTICE 'Column storage_resource_type added successfully.';
+    ELSE
+        RAISE NOTICE 'Column storage_resource_type already exists — skipping.';
+    END IF;
+END;
+$$;
+
+-- Step 2: Back-fill PDF rows that were uploaded before this migration.
+--         PDFs are stored as "raw" in Cloudinary.
 UPDATE documents
-SET storage_resource_type = 'image'
-WHERE (file_type = 'application/pdf' OR file_name LIKE '%.pdf')
-  AND storage_resource_type IS NULL;
+SET    storage_resource_type = 'raw'
+WHERE  storage_resource_type IS NULL
+  AND  deleted_at IS NULL
+  AND  (
+           file_type = 'application/pdf'
+        OR file_name ILIKE '%.pdf'
+       );
 
-PRINT CONCAT('Updated ', @@ROWCOUNT, ' PDF records to resource_type = image');
-GO
-
--- Update other existing records to 'auto' as default
+-- Step 3: Everything else defaults to 'auto'
 UPDATE documents
-SET storage_resource_type = 'auto'
-WHERE storage_resource_type IS NULL;
+SET    storage_resource_type = 'auto'
+WHERE  storage_resource_type IS NULL
+  AND  deleted_at IS NULL;
 
-PRINT CONCAT('Updated ', @@ROWCOUNT, ' other records to resource_type = auto');
-GO
-
--- Verify migration
-SELECT 
-    storage_resource_type,
+-- Step 4: Verify result
+SELECT
+    COALESCE(storage_resource_type, '(null)') AS resource_type,
     file_type,
-    COUNT(*) as count
-FROM documents
+    COUNT(*)                                   AS total
+FROM  documents
 WHERE deleted_at IS NULL
 GROUP BY storage_resource_type, file_type
 ORDER BY storage_resource_type, file_type;
-GO
