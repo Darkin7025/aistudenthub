@@ -44,12 +44,9 @@ public class DocumentService {
 
     private static final int TEXT_PREVIEW_LIMIT = 50_000;
     private static final long MAX_FILE_SIZE = 10L * 1024 * 1024;
-    private static final String OFFICE_PREVIEW_MESSAGE =
-            "Office preview uses external viewer. If it cannot load, please download the file.";
-    private static final String UNSUPPORTED_PREVIEW_MESSAGE =
-            "Preview is not supported for this file type. Please download the file.";
-    private static final String MISSING_FILE_URL_MESSAGE =
-            "Preview is unavailable because the file URL is missing. Please download the file.";
+    private static final String OFFICE_PREVIEW_MESSAGE = "Office preview uses external viewer. If it cannot load, please download the file.";
+    private static final String UNSUPPORTED_PREVIEW_MESSAGE = "Preview is not supported for this file type. Please download the file.";
+    private static final String MISSING_FILE_URL_MESSAGE = "Preview is unavailable because the file URL is missing. Please download the file.";
 
     private final DocumentRepository documentRepository;
     private final FolderRepository folderRepository;
@@ -74,18 +71,20 @@ public class DocumentService {
                     log.warn("Text file is empty: {}", file.getOriginalFilename());
                     extractedText = null;
                 } else {
-                    log.info("Extracted {} chars from text file: {}", extractedText.length(), file.getOriginalFilename());
+                    log.info("Extracted {} chars from text file: {}", extractedText.length(),
+                            file.getOriginalFilename());
                 }
             } else if (PreviewMode.PDF.equals(previewMode)) {
                 try (PDDocument pdDoc = Loader.loadPDF(file.getBytes())) {
                     PDFTextStripper stripper = new PDFTextStripper();
                     extractedText = stripper.getText(pdDoc);
-                    
+
                     if (extractedText != null && !extractedText.trim().isEmpty()) {
-                        log.info("Extracted {} chars from {} pages PDF: {}", 
+                        log.info("Extracted {} chars from {} pages PDF: {}",
                                 extractedText.length(), pdDoc.getNumberOfPages(), file.getOriginalFilename());
                     } else {
-                        log.warn("PDF has no extractable text (might be scanned image): {}", file.getOriginalFilename());
+                        log.warn("PDF has no extractable text (might be scanned image): {}",
+                                file.getOriginalFilename());
                         extractedText = null;
                     }
                 }
@@ -219,7 +218,8 @@ public class DocumentService {
     }
 
     @Transactional(readOnly = true)
-    public com.example.swp391.aistudenthub.feature.document.dto.response.DocumentFilterOptionsResponse getFilterOptions(UUID userId) {
+    public com.example.swp391.aistudenthub.feature.document.dto.response.DocumentFilterOptionsResponse getFilterOptions(
+            UUID userId) {
         List<String> subjects = documentRepository.findDistinctSubjectsByUserId(userId);
         List<String> majors = documentRepository.findDistinctMajorsByUserId(userId);
         return com.example.swp391.aistudenthub.feature.document.dto.response.DocumentFilterOptionsResponse.builder()
@@ -259,21 +259,21 @@ public class DocumentService {
             throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
         }
 
-        String fileName = StringUtils.hasText(doc.getOriginalFileName()) ? doc.getOriginalFileName() : doc.getFileName();
-        
+        String fileName = StringUtils.hasText(doc.getOriginalFileName()) ? doc.getOriginalFileName()
+                : doc.getFileName();
+
         String previewUrl = doc.getFileUrl();
         if (doc.getStoragePublicId() != null && "cloudinary".equals(doc.getStorageBucket())) {
             String format = null;
-            if (doc.getFileUrl() != null && doc.getFileUrl().endsWith(".pdf") 
+            if (doc.getFileUrl() != null && doc.getFileUrl().endsWith(".pdf")
                     && !doc.getStoragePublicId().toLowerCase().endsWith(".pdf")) {
                 format = "pdf";
             }
-            
+
             String signedUrl = cloudinaryService.getSignedUrl(
                     doc.getStoragePublicId(),
                     resolveResourceType(doc),
-                    format
-            );
+                    format);
             if (signedUrl != null) {
                 previewUrl = signedUrl;
             }
@@ -412,7 +412,8 @@ public class DocumentService {
     /**
      * Determines the correct Cloudinary resource_type for signed URL generation.
      * Legacy PDFs were uploaded as "raw", new PDFs are uploaded as "image".
-     * Falls back to the stored value, then derives from MIME type, then defaults to "image".
+     * Falls back to the stored value, then derives from MIME type, then defaults to
+     * "image".
      */
     private String resolveResourceType(Document doc) {
         if (doc.getStorageResourceType() != null) {
@@ -431,7 +432,8 @@ public class DocumentService {
     }
 
     @Transactional(readOnly = true)
-    public ResponseEntity<byte[]> streamDocument(UUID documentId, com.example.swp391.aistudenthub.feature.auth.entity.User currentUser) {
+    public ResponseEntity<byte[]> streamDocument(UUID documentId,
+            com.example.swp391.aistudenthub.feature.auth.entity.User currentUser) {
         Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
 
@@ -447,12 +449,11 @@ public class DocumentService {
                         && !doc.getStoragePublicId().toLowerCase().endsWith(".pdf")) {
                     format = "pdf";
                 }
-                
+
                 String signedUrl = cloudinaryService.getSignedUrl(
                         doc.getStoragePublicId(),
                         resolveResourceType(doc),
-                        format
-                );
+                        format);
                 if (signedUrl != null) {
                     targetUrl = signedUrl;
                 }
@@ -461,7 +462,7 @@ public class DocumentService {
             URL url = new URL(targetUrl);
             java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
             conn.setRequestProperty("User-Agent", "Mozilla/5.0");
-            
+
             int responseCode = conn.getResponseCode();
             if (responseCode >= 400) {
                 String errorMsg = "";
@@ -470,25 +471,26 @@ public class DocumentService {
                         errorMsg = new String(errorStream.readAllBytes(), StandardCharsets.UTF_8);
                     }
                 }
-                log.error("Cloudinary returned HTTP {} for URL {}. Error details: {}", responseCode, targetUrl, errorMsg);
+                log.error("Cloudinary returned HTTP {} for URL {}. Error details: {}", responseCode, targetUrl,
+                        errorMsg);
                 throw new AppException(ErrorCode.DOCUMENT_NOT_FOUND);
             }
 
             try (InputStream in = conn.getInputStream()) {
                 byte[] content = in.readAllBytes();
-                
+
                 HttpHeaders headers = new HttpHeaders();
-                
+
                 if (doc.getFileType() != null) {
                     headers.setContentType(MediaType.parseMediaType(doc.getFileType()));
                 } else {
                     headers.setContentType(MediaType.APPLICATION_PDF);
                 }
-                
+
                 String fileName = doc.getOriginalFileName() != null ? doc.getOriginalFileName() : doc.getFileName();
                 headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"");
                 headers.setCacheControl("max-age=3600");
-                
+
                 log.info("Streamed document {} to user {}", documentId, currentUser.getId());
                 return new ResponseEntity<>(content, headers, HttpStatus.OK);
             }
