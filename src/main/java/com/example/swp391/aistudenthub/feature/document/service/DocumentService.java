@@ -413,6 +413,8 @@ public class DocumentService {
 
     /**
      * Determines the correct Cloudinary resource_type for signed URL generation.
+     * Legacy PDFs were uploaded as "raw", new PDFs are uploaded as "image".
+     * Falls back to the stored value, then derives from MIME type, then defaults to "image".
      * PDFs are uploaded as "raw" — must use "raw" when building the signed URL too.
      * Falls back to the stored value, then derives from MIME type, then defaults to
      * "image".

@@ -32,8 +32,8 @@ public class CloudinaryService {
 
             if ("application/pdf".equals(contentType) ||
                 (fileName != null && fileName.toLowerCase().endsWith(".pdf"))) {
-                resourceType = "raw";
-                log.info("Uploading PDF as raw type: {}", fileName);
+                resourceType = "image";
+                log.info("Uploading PDF as image type: {}", fileName);
             }
 
             log.info("Cloudinary upload start — file={}, size={}, contentType={}, resourceType={}",
