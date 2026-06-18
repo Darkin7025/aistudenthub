@@ -371,21 +371,23 @@ public class DocumentService {
                     customMetadata,
                     new TypeReference<List<Map<String, String>>>() {
                     });
-            for (Map<String, String> item : metadataList) {
-                String key = item.get("key");
-                String value = item.get("value");
-                if (key != null && key.length() > 100) {
-                    throw new IllegalArgumentException("Metadata key quá dài (tối đa 100 ký tự)");
-                }
-                if (value != null && value.length() > 1000) {
-                    throw new IllegalArgumentException("Metadata value quá dài (tối đa 1000 ký tự)");
+            if (metadataList != null) {
+                for (Map<String, String> item : metadataList) {
+                    String key = item.get("key");
+                    String value = item.get("value");
+                    if (key != null && key.length() > 100) {
+                        throw new IllegalArgumentException("Metadata key quá dài (tối đa 100 ký tự)");
+                    }
+                    if (value != null && value.length() > 1000) {
+                        throw new IllegalArgumentException("Metadata value quá dài (tối đa 1000 ký tự)");
+                    }
                 }
             }
         } catch (IllegalArgumentException e) {
             throw new AppException(ErrorCode.VALIDATION_ERROR);
         } catch (Exception e) {
-            log.error("Invalid custom metadata JSON: {}", e.getMessage());
-            throw new AppException(ErrorCode.VALIDATION_ERROR);
+            // Invalid JSON (e.g. Swagger/Postman placeholder "string") — silently ignore
+            log.warn("customMetadata is not valid JSON, skipping validation: {}", e.getMessage());
         }
     }
 
@@ -405,13 +407,20 @@ public class DocumentService {
     private boolean canPreviewDocument(
             Document doc,
             com.example.swp391.aistudenthub.feature.auth.entity.User currentUser) {
-        return doc.getUserId().equals(currentUser.getId())
+        // Tài liệu PUBLIC cho phép bất kỳ user nào đã đăng nhập xem được
+        return com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC.equals(doc.getVisibility())
+                || doc.getUserId().equals(currentUser.getId())
                 || com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole());
     }
 
     /**
      * Determines the correct Cloudinary resource_type for signed URL generation.
      * Legacy PDFs were uploaded as "raw", new PDFs are uploaded as "image".
+<<<<<<< HEAD
+=======
+     * Falls back to the stored value, then derives from MIME type, then defaults to "image".
+     * PDFs are uploaded as "raw" — must use "raw" when building the signed URL too.
+>>>>>>> 02604b57180f4574f244079d662e3cb337cf4402
      * Falls back to the stored value, then derives from MIME type, then defaults to
      * "image".
      */
