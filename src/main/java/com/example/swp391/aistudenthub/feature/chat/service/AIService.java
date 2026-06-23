@@ -9,5 +9,11 @@ public interface AIService {
         return generateAnswer(prompt);
     }
 
+    /**
+     * Sends an image URL and a question to the AI (Gemini Vision).
+     * Used when the document is an image file with no extracted text.
+     */
+    String generateAnswerWithImage(String imageUrl, String question);
+
     void generateStreamResponse(String prompt, Consumer<String> onNext, Runnable onComplete, Consumer<Throwable> onError);
 }

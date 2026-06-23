@@ -54,6 +54,7 @@ public class DocumentService {
     private final DocumentMapper documentMapper;
     private final ObjectMapper objectMapper;
     private final DocumentPreviewResolver previewResolver;
+    private final OfficeTextExtractor officeTextExtractor;
 
     @Transactional
     public DocumentResponse upload(MultipartFile file, UploadDocumentRequest request, UUID userId) {
@@ -87,6 +88,14 @@ public class DocumentService {
                                 file.getOriginalFilename());
                         extractedText = null;
                     }
+                }
+            } else if (PreviewMode.OFFICE.equals(previewMode)
+                    && previewResolver.isOfficeAiCapable(file.getOriginalFilename(), file.getContentType())) {
+                extractedText = officeTextExtractor.extract(
+                        file.getBytes(), file.getOriginalFilename(), file.getContentType());
+                if (extractedText != null) {
+                    log.info("Extracted {} chars from Office file: {}",
+                            extractedText.length(), file.getOriginalFilename());
                 }
             }
         } catch (Exception e) {

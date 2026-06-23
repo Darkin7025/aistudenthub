@@ -66,7 +66,29 @@ public class DocumentPreviewResolver {
         return PreviewMode.UNSUPPORTED;
     }
 
+    private static final Set<String> OFFICE_AI_EXTENSIONS = Set.of(
+            ".docx", ".xlsx", ".pptx"
+    );
+
+    private static final Set<String> OFFICE_AI_MIME_TYPES = Set.of(
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    );
+
     public boolean isAiCapable(PreviewMode previewMode) {
         return PreviewMode.TEXT.equals(previewMode) || PreviewMode.PDF.equals(previewMode);
+    }
+
+    /**
+     * Returns true for modern Office XML formats (.docx, .xlsx, .pptx)
+     * supported by Apache POI for text extraction.
+     * Does NOT include legacy formats (.doc, .xls, .ppt).
+     */
+    public boolean isOfficeAiCapable(String fileName, String mimeType) {
+        String lowerName = fileName != null ? fileName.toLowerCase() : "";
+        String lowerMime = mimeType != null ? mimeType.toLowerCase() : "";
+        return OFFICE_AI_MIME_TYPES.contains(lowerMime)
+                || OFFICE_AI_EXTENSIONS.stream().anyMatch(lowerName::endsWith);
     }
 }

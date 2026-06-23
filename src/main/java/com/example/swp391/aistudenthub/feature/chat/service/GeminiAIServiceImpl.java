@@ -59,10 +59,10 @@ public class GeminiAIServiceImpl implements AIService {
     @Value("${ai.model:gemini-2.5-flash}")
     private String model;
 
-    @Value("${ai.max-tokens:1024}")
+    @Value("${ai.max-tokens:8192}")
     private int maxTokens;
 
-    @Value("${ai.timeout-seconds:30}")
+    @Value("${ai.timeout-seconds:60}")
     private int timeoutSeconds;
 
     @Override
@@ -110,8 +110,9 @@ public class GeminiAIServiceImpl implements AIService {
         ObjectNode payload = objectMapper.createObjectNode();
         
         ObjectNode systemInstruction = payload.putObject("systemInstruction");
-        ObjectNode systemParts = systemInstruction.putObject("parts");
-        systemParts.put("text", SYSTEM_INSTRUCTION);
+        // Gemini API requires 'parts' to be an Array, not an Object
+        ArrayNode systemParts = systemInstruction.putArray("parts");
+        systemParts.addObject().put("text", SYSTEM_INSTRUCTION);
         
         ArrayNode contents = payload.putArray("contents");
         ObjectNode userContent = contents.addObject();
@@ -143,14 +144,100 @@ public class GeminiAIServiceImpl implements AIService {
             log.error("Gemini API returned empty candidates. Response: {}", response.body());
             throw new RuntimeException("Empty candidates from Gemini");
         }
-        
-        String content = candidates.get(0).path("content").path("parts").get(0).path("text").asText(null);
-        
+
+        JsonNode firstCandidate = candidates.get(0);
+
+        // Handle MAX_TOKENS finish reason — partial content is still usable
+        String finishReason = firstCandidate.path("finishReason").asText("");
+        if ("MAX_TOKENS".equals(finishReason)) {
+            log.warn("Gemini response truncated due to MAX_TOKENS. Consider increasing ai.max-tokens.");
+        } else if ("SAFETY".equals(finishReason) || "RECITATION".equals(finishReason)) {
+            log.error("Gemini blocked response. finishReason: {}, Response: {}", finishReason, response.body());
+            throw new RuntimeException("Gemini blocked response: " + finishReason);
+        }
+
+        JsonNode partsNode = firstCandidate.path("content").path("parts");
+        String content = (partsNode.isArray() && partsNode.size() > 0)
+                ? partsNode.get(0).path("text").asText(null)
+                : null;
+
         if (!StringUtils.hasText(content)) {
-            log.error("Gemini API returned empty content. Response: {}", response.body());
+            log.error("Gemini API returned empty content. finishReason: {}, Response: {}", finishReason, response.body());
             throw new RuntimeException("Empty content from Gemini");
         }
 
+        return content.trim();
+    }
+
+    @Override
+    public String generateAnswerWithImage(String imageUrl, String question) {
+        if (!StringUtils.hasText(apiKey)) {
+            throw new IllegalStateException("Gemini API key is missing.");
+        }
+        try {
+            log.debug("Calling Gemini Vision API for image: {}", imageUrl);
+            return callGeminiVisionApi(imageUrl, question);
+        } catch (Exception e) {
+            log.error("Gemini Vision API request failed: {}", e.getMessage());
+            return FRIENDLY_UNAVAILABLE_MESSAGE;
+        }
+    }
+
+    private String callGeminiVisionApi(String imageUrl, String question) throws Exception {
+        String url = apiUrl + "/" + model + ":generateContent?key=" + apiKey;
+
+        ObjectNode payload = objectMapper.createObjectNode();
+
+        // System instruction
+        ObjectNode systemInstruction = payload.putObject("systemInstruction");
+        systemInstruction.putArray("parts").addObject().put("text", SYSTEM_INSTRUCTION);
+
+        // User content: image part + text question part
+        ArrayNode contents = payload.putArray("contents");
+        ObjectNode userContent = contents.addObject();
+        ArrayNode parts = userContent.putArray("parts");
+
+        // Image part — Gemini Vision nhận URL công khai qua fileData
+        ObjectNode imagePart = parts.addObject();
+        ObjectNode fileData = imagePart.putObject("fileData");
+        fileData.put("fileUri", imageUrl);
+        // mimeType để trống, Gemini tự detect từ URL
+
+        // Text question part
+        parts.addObject().put("text",
+                "Hãy phân tích hình ảnh này và trả lời câu hỏi sau: " + question);
+
+        ObjectNode generationConfig = payload.putObject("generationConfig");
+        generationConfig.put("maxOutputTokens", maxTokens);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(timeoutSeconds))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            log.error("Gemini Vision API error. Status: {}, Body: {}", response.statusCode(), response.body());
+            throw new RuntimeException("Vision API returned status " + response.statusCode());
+        }
+
+        JsonNode root = objectMapper.readTree(response.body());
+        JsonNode candidates = root.path("candidates");
+        if (candidates.isEmpty()) {
+            throw new RuntimeException("Empty candidates from Gemini Vision");
+        }
+
+        JsonNode partsNode = candidates.get(0).path("content").path("parts");
+        String content = (partsNode.isArray() && partsNode.size() > 0)
+                ? partsNode.get(0).path("text").asText(null)
+                : null;
+
+        if (!StringUtils.hasText(content)) {
+            throw new RuntimeException("Empty content from Gemini Vision");
+        }
         return content.trim();
     }
 
