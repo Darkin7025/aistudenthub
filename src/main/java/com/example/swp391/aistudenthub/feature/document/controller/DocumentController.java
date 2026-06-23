@@ -27,26 +27,26 @@ public class DocumentController {
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final jakarta.validation.Validator validator;
 
-
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<DocumentResponse>> upload(
             @RequestPart("file") MultipartFile file,
-            @io.swagger.v3.oas.annotations.Parameter(schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = UploadDocumentRequest.class)) 
-            @RequestPart("request") String requestJson,
+            @io.swagger.v3.oas.annotations.Parameter(schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = UploadDocumentRequest.class)) @RequestPart("request") String requestJson,
             @AuthenticationPrincipal User currentUser) {
 
         UploadDocumentRequest request;
         try {
             request = objectMapper.readValue(requestJson, UploadDocumentRequest.class);
         } catch (Exception e) {
-            throw new com.example.swp391.aistudenthub.exception.AppException(com.example.swp391.aistudenthub.exception.ErrorCode.VALIDATION_ERROR, "Dữ liệu JSON không hợp lệ");
+            throw new com.example.swp391.aistudenthub.exception.AppException(
+                    com.example.swp391.aistudenthub.exception.ErrorCode.VALIDATION_ERROR, "Dữ liệu JSON không hợp lệ");
         }
 
-        java.util.Set<jakarta.validation.ConstraintViolation<UploadDocumentRequest>> violations = validator.validate(request);
+        java.util.Set<jakarta.validation.ConstraintViolation<UploadDocumentRequest>> violations = validator
+                .validate(request);
         if (!violations.isEmpty()) {
             String message = violations.iterator().next().getMessage();
             throw new com.example.swp391.aistudenthub.exception.AppException(
-                    com.example.swp391.aistudenthub.exception.ErrorCode.VALIDATION_ERROR, 
+                    com.example.swp391.aistudenthub.exception.ErrorCode.VALIDATION_ERROR,
                     message);
         }
 

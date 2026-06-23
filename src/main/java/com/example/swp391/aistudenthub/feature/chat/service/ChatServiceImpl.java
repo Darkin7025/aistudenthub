@@ -14,7 +14,9 @@ import com.example.swp391.aistudenthub.feature.chat.mapper.ChatMapper;
 import com.example.swp391.aistudenthub.feature.chat.repository.ChatMessageRepository;
 import com.example.swp391.aistudenthub.feature.chat.repository.ChatSessionRepository;
 import com.example.swp391.aistudenthub.feature.document.entity.Document;
+import com.example.swp391.aistudenthub.feature.document.enums.PreviewMode;
 import com.example.swp391.aistudenthub.feature.document.repository.DocumentRepository;
+import com.example.swp391.aistudenthub.feature.document.service.DocumentPreviewResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,6 +45,7 @@ public class ChatServiceImpl implements ChatService {
     private final RAGService ragService;
     private final ChatMapper chatMapper;
     private final TransactionTemplate transactionTemplate;
+    private final DocumentPreviewResolver previewResolver;
 
     @Override
     public ChatResponse chat(ChatRequest request, UUID userId) {
@@ -81,7 +84,7 @@ public class ChatServiceImpl implements ChatService {
     public ChatResponse chatWithDocument(UUID documentId, DocumentChatRequest request, UUID userId) {
         String question = requireText(request.getQuestion());
         Document document = findOwnedDocument(documentId, userId);
-        ensureDocumentContentAvailable(document);
+        ensureDocumentChatCapable(document);
 
         ChatSession session = transactionTemplate.execute(status -> {
             ChatSession currentSession = getOrCreateSession(
@@ -97,8 +100,7 @@ public class ChatServiceImpl implements ChatService {
             throw new AppException(ErrorCode.INTERNAL_ERROR);
         }
 
-        String prompt = ragService.buildDocumentPrompt(document.getExtractedText(), question);
-        String answer = generateAnswerSafely(prompt);
+        String answer = generateAnswerForDocument(document, question);
         UUID sessionId = session.getId();
 
         transactionTemplate.executeWithoutResult(status -> {
@@ -138,7 +140,7 @@ public class ChatServiceImpl implements ChatService {
     public SseEmitter streamChatWithDocument(UUID documentId, DocumentChatRequest request, UUID userId) {
         String question = requireText(request.getQuestion());
         Document document = findOwnedDocument(documentId, userId);
-        ensureDocumentContentAvailable(document);
+        ensureDocumentChatCapable(document);
 
         ChatSession session = transactionTemplate.execute(status -> {
             ChatSession currentSession = getOrCreateSession(
@@ -152,6 +154,19 @@ public class ChatServiceImpl implements ChatService {
         });
         if (session == null) {
             throw new AppException(ErrorCode.INTERNAL_ERROR);
+        }
+
+        // Stream image via Vision: wrap answer as simulated stream
+        PreviewMode mode = resolveDocumentMode(document);
+        if (PreviewMode.IMAGE.equals(mode)) {
+            String answer = generateImageAnswerSafely(document.getFileUrl(), question);
+            UUID sessionId = session.getId();
+            transactionTemplate.executeWithoutResult(status -> {
+                ChatSession s = findSessionForUser(sessionId, userId);
+                attachDocumentContext(s, documentId);
+                saveMessage(s, MessageSender.AI, answer);
+            });
+            return simulateStream(answer, sessionId, userId, documentId);
         }
 
         String prompt = ragService.buildDocumentPrompt(document.getExtractedText(), question);
@@ -296,6 +311,55 @@ public class ChatServiceImpl implements ChatService {
         }
     }
 
+    private String generateImageAnswerSafely(String imageUrl, String question) {
+        try {
+            return aiService.generateAnswerWithImage(imageUrl, question);
+        } catch (Exception e) {
+            log.warn("Gemini Vision unavailable: {}", e.getMessage());
+            return AI_UNAVAILABLE_MESSAGE;
+        }
+    }
+
+    /**
+     * Generates the AI answer for a document, routing to Vision API for images
+     * and RAG prompt for text-extractable documents.
+     */
+    private String generateAnswerForDocument(Document document, String question) {
+        PreviewMode mode = resolveDocumentMode(document);
+        if (PreviewMode.IMAGE.equals(mode)) {
+            return generateImageAnswerSafely(document.getFileUrl(), question);
+        }
+        String prompt = ragService.buildDocumentPrompt(document.getExtractedText(), question);
+        return generateAnswerSafely(prompt);
+    }
+
+    private PreviewMode resolveDocumentMode(Document document) {
+        String fileName = document.getOriginalFileName() != null
+                ? document.getOriginalFileName() : document.getFileName();
+        return previewResolver.resolveMode(fileName, document.getFileType());
+    }
+
+    /**
+     * Simulates a stream for Vision API responses (which are not natively streamed).
+     */
+    private SseEmitter simulateStream(String answer, UUID sessionId, UUID userId, UUID documentId) {
+        SseEmitter emitter = new SseEmitter(60_000L);
+        new Thread(() -> {
+            try {
+                String[] words = answer.split("(?<=\\s)");
+                for (String word : words) {
+                    Thread.sleep(60);
+                    emitter.send(SseEmitter.event().name("message").data(word));
+                }
+                emitter.send(SseEmitter.event().name("done").data(sessionId.toString()));
+                emitter.complete();
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+            }
+        }).start();
+        return emitter;
+    }
+
     private String requireText(String value) {
         if (!StringUtils.hasText(value)) {
             throw new AppException(ErrorCode.VALIDATION_ERROR);
@@ -320,7 +384,20 @@ public class ChatServiceImpl implements ChatService {
         return normalized.substring(0, TITLE_MAX_LENGTH - 3) + "...";
     }
 
-    private void ensureDocumentContentAvailable(Document document) {
+    /**
+     * Ensures the document can be used for AI chat:
+     * - Images: must have a fileUrl (for Vision API)
+     * - Other types: must have extractedText (for RAG)
+     */
+    private void ensureDocumentChatCapable(Document document) {
+        PreviewMode mode = resolveDocumentMode(document);
+        if (PreviewMode.IMAGE.equals(mode)) {
+            if (!StringUtils.hasText(document.getFileUrl())) {
+                throw new AppException(ErrorCode.DOCUMENT_CONTENT_NOT_AVAILABLE,
+                        "Hình ảnh không có URL để phân tích.");
+            }
+            return;
+        }
         if (!StringUtils.hasText(document.getExtractedText())) {
             throw new AppException(ErrorCode.DOCUMENT_CONTENT_NOT_AVAILABLE);
         }

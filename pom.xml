@@ -107,6 +107,22 @@
 			<version>3.0.1</version>
 		</dependency>
 
+		<!-- Apache POI — Office Document Text Extraction (.docx, .xlsx, .pptx) -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.3.0</version>
+		</dependency>
+
+
+		<!-- Apache POI — Office Document Text Extraction (.docx, .xlsx, .pptx) -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.3.0</version>
+		</dependency>
+
+
 		<!-- Swagger/OpenAPI -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
