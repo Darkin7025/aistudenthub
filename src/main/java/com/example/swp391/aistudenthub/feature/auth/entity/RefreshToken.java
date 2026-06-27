@@ -17,10 +17,9 @@ public class RefreshToken {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "UNIQUEIDENTIFIER")
     private UUID id;
 
-    @Column(name = "user_id", nullable = false, columnDefinition = "UNIQUEIDENTIFIER")
+    @Column(name = "user_id", nullable = false)
     private UUID userId;
 
     @Column(name = "token_hash", nullable = false, unique = true, length = 255)

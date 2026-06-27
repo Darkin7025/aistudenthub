@@ -6,13 +6,13 @@
 # 3. application-local.properties is gitignored (never committed)
 # ============================================================
 
-# DATABASE — SQL Server
-spring.datasource.url=jdbc:sqlserver://localhost:1444;databaseName=ai_study_hub;trustServerCertificate=true;encrypt=false
+# DATABASE — PostgreSQL
+spring.datasource.url=jdbc:postgresql://localhost:5432/ai_study_hub
 spring.datasource.username=YOUR_DB_USERNAME
 spring.datasource.password=YOUR_DB_PASSWORD
 
 # JWT Secret (base64 encoded, min 256-bit recommended)
-jwt.secret=YOUR_JWT_SECRET_HERE
+jwt.secret=${JWT_SECRET:YWlzdHVkZW50aHViLXN1cGVyLXNlY3JldC1rZXktZm9yLWp3dC1zaWduaW5nCg==}
 jwt.access-token-expiration=900000
 
 # MAIL — Gmail SMTP
@@ -25,3 +25,11 @@ spring.mail.password=YOUR_GMAIL_APP_PASSWORD
 cloudinary.cloud-name=YOUR_CLOUD_NAME
 cloudinary.api-key=YOUR_API_KEY
 cloudinary.api-secret=YOUR_API_SECRET
+
+# AI — optional for local demo
+# Leave AI_API_KEY empty to use mock fallback responses.
+ai.api-key=${AI_API_KEY:}
+ai.api-url=${AI_API_URL:https://api.openai.com/v1/chat/completions}
+ai.model=${AI_MODEL:gpt-4o-mini}
+ai.max-tokens=${AI_MAX_TOKENS:1024}
+ai.timeout-seconds=${AI_TIMEOUT_SECONDS:30}

@@ -22,7 +22,7 @@ public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "UNIQUEIDENTIFIER")
+    @Column()
     private UUID id;
 
     @Column(nullable = false, unique = true, length = 255)

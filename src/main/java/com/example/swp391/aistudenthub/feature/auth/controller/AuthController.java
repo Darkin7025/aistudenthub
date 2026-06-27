@@ -5,6 +5,7 @@ import com.example.swp391.aistudenthub.common.dto.MessageResponse;
 import com.example.swp391.aistudenthub.feature.auth.dto.AuthResponse;
 import com.example.swp391.aistudenthub.feature.auth.dto.ForgotPasswordRequest;
 import com.example.swp391.aistudenthub.feature.auth.dto.LoginRequest;
+import com.example.swp391.aistudenthub.feature.auth.dto.RefreshTokenRequest;
 import com.example.swp391.aistudenthub.feature.auth.dto.RegisterRequest;
 import com.example.swp391.aistudenthub.feature.auth.dto.ResetPasswordRequest;
 import com.example.swp391.aistudenthub.feature.auth.service.AuthService;
@@ -55,6 +56,18 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<MessageResponse>> logout() {
         return ResponseEntity.ok(ApiResponse.success(authService.logout()));
+    }
+
+    /**
+     * LÀM MỚI ACCESS TOKEN
+     * POST /api/v1/auth/refresh-token
+     * Body: { "refreshToken": "..." }
+     * → Validates refresh token → revokes old one → issues new access + refresh token pair
+     * Response: { "token": "eyJ...", "refreshToken": "...", "tokenType": "Bearer", ... }
+     */
+    @PostMapping("/refresh-token")
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(authService.refreshToken(request)));
     }
 
     /**
