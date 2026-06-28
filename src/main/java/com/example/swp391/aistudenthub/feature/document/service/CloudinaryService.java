@@ -21,19 +21,23 @@ public class CloudinaryService {
 
     @SuppressWarnings("unchecked")
     public Map<String, String> upload(MultipartFile file) {
+        java.io.File tempFile = null;
         try {
-            java.io.File tempFile = java.io.File.createTempFile("upload_", "_" + file.getOriginalFilename());
+            tempFile = java.io.File.createTempFile("upload_", "_" + file.getOriginalFilename());
             file.transferTo(tempFile);
 
             String resourceType = "auto";
             String contentType = file.getContentType();
             String fileName = file.getOriginalFilename();
-            
-            if ("application/pdf".equals(contentType) || 
+
+            if ("application/pdf".equals(contentType) ||
                 (fileName != null && fileName.toLowerCase().endsWith(".pdf"))) {
-                resourceType = "raw";
-                log.info("Uploading PDF as raw type to bypass restrictions: {}", fileName);
+                resourceType = "image";
+                log.info("Uploading PDF as image type: {}", fileName);
             }
+
+            log.info("Cloudinary upload start — file={}, size={}, contentType={}, resourceType={}",
+                    fileName, file.getSize(), contentType, resourceType);
 
             Map<?, ?> result = cloudinary.uploader().upload(
                     tempFile,
@@ -44,23 +48,33 @@ public class CloudinaryService {
                             "unique_filename", true,
                             "access_mode", "public"
                     ));
-            
-            tempFile.delete();
 
             String url = (String) result.get("secure_url");
             String publicId = (String) result.get("public_id");
             String actualResourceType = (String) result.get("resource_type");
 
-            log.info("Cloudinary upload success: publicId={}, resourceType={}", publicId, actualResourceType);
+            log.info("Cloudinary upload success: publicId={}, resourceType={}, url={}",
+                    publicId, actualResourceType, url);
+
             return Map.of(
-                "url", url, 
-                "public_id", publicId,
-                "resource_type", actualResourceType != null ? actualResourceType : "auto"
+                    "url", url,
+                    "public_id", publicId,
+                    "resource_type", actualResourceType != null ? actualResourceType : "auto"
             );
 
         } catch (IOException e) {
-            log.error("Cloudinary upload failed", e);
+            log.error("Cloudinary upload failed (IOException) — file={}: {}",
+                    file.getOriginalFilename(), e.getMessage(), e);
             throw new AppException(ErrorCode.UPLOAD_FAILED);
+        } catch (Exception e) {
+            // Catches Cloudinary ApiException, RuntimeException, auth errors, etc.
+            log.error("Cloudinary upload failed ({}): {}",
+                    e.getClass().getSimpleName(), e.getMessage(), e);
+            throw new AppException(ErrorCode.UPLOAD_FAILED);
+        } finally {
+            if (tempFile != null && tempFile.exists()) {
+                tempFile.delete();
+            }
         }
     }
 
