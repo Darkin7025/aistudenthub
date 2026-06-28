@@ -1,51 +1,63 @@
 package com.example.swp391.aistudenthub.feature.auth.service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.MailException;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 
-import java.io.UnsupportedEncodingException;
+import java.util.List;
+import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    private final RestClient restClient;
 
-    @Value("${spring.mail.username}")
-    private String fromEmail;
+    @Value("${resend.api-key}")
+    private String apiKey;
+
+    @Value("${resend.from}")
+    private String fromAddress;
 
     @Value("${app.base-url}")
     private String baseUrl;
 
+    public EmailService() {
+        this.restClient = RestClient.builder()
+                .baseUrl("https://api.resend.com")
+                .build();
+    }
+
     /**
-     * Gửi email HTML chứa link đặt lại mật khẩu.
+     * Gửi email HTML chứa link đặt lại mật khẩu qua Resend HTTP API.
      * Token là UUID raw, hash SHA-256 lưu DB. Link có hiệu lực 1 giờ.
      */
     @Async
     public void sendPasswordResetEmail(String toEmail, String resetToken) {
         String resetLink = baseUrl + "/reset-password?token=" + resetToken;
 
+        Map<String, Object> body = Map.of(
+                "from", fromAddress,
+                "to", List.of(toEmail),
+                "subject", "[AI Study Hub] Đặt lại mật khẩu của bạn",
+                "html", buildResetEmailHtml(resetLink)
+        );
+
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            restClient.post()
+                    .uri("/emails")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .toBodilessEntity();
 
-            helper.setFrom(fromEmail, "AI Study Hub");
-            helper.setTo(toEmail);
-            helper.setSubject("[AI Study Hub] Đặt lại mật khẩu của bạn");
-            helper.setText(buildResetEmailHtml(resetLink), true);
-
-            mailSender.send(message);
             log.info("Password reset email sent successfully to {}", toEmail);
-        } catch (MailException | MessagingException | UnsupportedEncodingException e) {
+        } catch (Exception e) {
             log.error("Failed to send password reset email to {}: {}", toEmail, e.getMessage());
         }
     }
