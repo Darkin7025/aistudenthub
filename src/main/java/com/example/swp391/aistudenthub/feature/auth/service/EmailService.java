@@ -17,23 +17,26 @@ public class EmailService {
 
     private final RestClient restClient;
 
-    @Value("${resend.api-key}")
+    @Value("${brevo.api-key}")
     private String apiKey;
 
-    @Value("${resend.from}")
-    private String fromAddress;
+    @Value("${brevo.from-email}")
+    private String fromEmail;
+
+    @Value("${brevo.from-name}")
+    private String fromName;
 
     @Value("${app.base-url}")
     private String baseUrl;
 
     public EmailService() {
         this.restClient = RestClient.builder()
-                .baseUrl("https://api.resend.com")
+                .baseUrl("https://api.brevo.com/v3")
                 .build();
     }
 
     /**
-     * Gửi email HTML chứa link đặt lại mật khẩu qua Resend HTTP API.
+     * Gửi email HTML chứa link đặt lại mật khẩu qua Brevo HTTP API.
      * Token là UUID raw, hash SHA-256 lưu DB. Link có hiệu lực 1 giờ.
      */
     @Async
@@ -41,16 +44,16 @@ public class EmailService {
         String resetLink = baseUrl + "/reset-password?token=" + resetToken;
 
         Map<String, Object> body = Map.of(
-                "from", fromAddress,
-                "to", List.of(toEmail),
+                "sender", Map.of("email", fromEmail, "name", fromName),
+                "to", List.of(Map.of("email", toEmail)),
                 "subject", "[AI Study Hub] Đặt lại mật khẩu của bạn",
-                "html", buildResetEmailHtml(resetLink)
+                "htmlContent", buildResetEmailHtml(resetLink)
         );
 
         try {
             restClient.post()
-                    .uri("/emails")
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                    .uri("/smtp/email")
+                    .header("api-key", apiKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
@@ -197,7 +200,6 @@ public class EmailService {
             + "</table>"
             + "</body></html>";
 
-        // Thay thế placeholder bằng link thực — tránh lỗi % trong .formatted()
         return template.replace("{{RESET_LINK}}", resetLink);
     }
 }
