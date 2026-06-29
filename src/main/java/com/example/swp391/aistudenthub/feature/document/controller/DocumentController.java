@@ -64,12 +64,40 @@ public class DocumentController {
         return ResponseEntity.ok(ApiResponse.success(docs));
     }
 
+    @GetMapping("/public")
+    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<DocumentResponse>>> searchPublicDocuments(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String subject,
+            @RequestParam(required = false) String major,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        if (keyword != null && keyword.trim().isEmpty())
+            keyword = null;
+        if (subject != null && subject.trim().isEmpty())
+            subject = null;
+        if (major != null && major.trim().isEmpty())
+            major = null;
+
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<DocumentResponse> result = documentService
+                .searchPublicDocuments(keyword, subject, major, pageable);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    @GetMapping("/public/filter-options")
+    public ResponseEntity<ApiResponse<com.example.swp391.aistudenthub.feature.document.dto.response.DocumentFilterOptionsResponse>> getPublicFilterOptions() {
+        com.example.swp391.aistudenthub.feature.document.dto.response.DocumentFilterOptionsResponse result = documentService
+                .getPublicFilterOptions();
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<DocumentResponse>> getById(
             @PathVariable UUID id,
             @AuthenticationPrincipal User currentUser) {
 
-        DocumentResponse doc = documentService.getById(id, currentUser.getId());
+        DocumentResponse doc = documentService.getById(id, currentUser);
         return ResponseEntity.ok(ApiResponse.success(doc));
     }
 
@@ -86,7 +114,7 @@ public class DocumentController {
     public ResponseEntity<ApiResponse<String>> downloadDocument(
             @PathVariable UUID id,
             @AuthenticationPrincipal User currentUser) {
-        String downloadUrl = documentService.downloadDocument(id, currentUser.getId());
+        String downloadUrl = documentService.downloadDocument(id, currentUser);
         return ResponseEntity.ok(ApiResponse.success(downloadUrl, "Lấy link download thành công"));
     }
 

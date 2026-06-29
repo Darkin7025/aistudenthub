@@ -70,15 +70,12 @@ public class AuthService {
         return new MessageResponse("Đăng ký thành công! Vui lòng đăng nhập.");
     }
 
-
     public AuthResponse login(LoginRequest request) {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getEmail().toLowerCase(),
-                            request.getPassword()
-                    )
-            );
+                            request.getPassword()));
         } catch (BadCredentialsException e) {
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
@@ -92,7 +89,6 @@ public class AuthService {
 
         return buildAuthResponse(user);
     }
-
 
     // ----------------------------------------------------------------
     // 2b. LÀM MỚI ACCESS TOKEN (Refresh Token Rotation)
@@ -125,7 +121,6 @@ public class AuthService {
         return buildAuthResponse(user);
     }
 
-
     // ── Private helpers ──────────────────────────────────────────────────────
 
     /**
@@ -137,7 +132,7 @@ public class AuthService {
 
         // Generate an opaque refresh token (UUID-based)
         String rawRefreshToken = UUID.randomUUID().toString();
-        String hashedRefresh   = sha256(rawRefreshToken);
+        String hashedRefresh = sha256(rawRefreshToken);
 
         RefreshToken refreshTokenEntity = RefreshToken.builder()
                 .userId(user.getId())
@@ -154,11 +149,9 @@ public class AuthService {
                 .build();
     }
 
-
     public MessageResponse logout() {
         return new MessageResponse("Đăng xuất thành công.");
     }
-
 
     @Transactional
     public MessageResponse forgotPassword(ForgotPasswordRequest request) {
@@ -186,7 +179,6 @@ public class AuthService {
         return new MessageResponse("Nếu email tồn tại trong hệ thống, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.");
     }
 
-
     @Transactional
     public MessageResponse resetPassword(ResetPasswordRequest request) {
         String hash = sha256(request.getToken());
@@ -208,7 +200,6 @@ public class AuthService {
 
         return new MessageResponse("Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập lại.");
     }
-
 
     private String sha256(String input) {
         try {

@@ -24,7 +24,8 @@ public enum ErrorCode {
     EMPTY_FILE("File không được rỗng", HttpStatus.BAD_REQUEST),
     DOCUMENT_NOT_FOUND("Tài liệu không tồn tại", HttpStatus.NOT_FOUND),
     UPLOAD_FAILED("Upload file thất bại, vui lòng thử lại", HttpStatus.INTERNAL_SERVER_ERROR),
-    DOCUMENT_CONTENT_NOT_AVAILABLE("Nội dung tài liệu chưa được xử lý hoặc loại file này chưa hỗ trợ AI.", HttpStatus.BAD_REQUEST),
+    DOCUMENT_CONTENT_NOT_AVAILABLE("Nội dung tài liệu chưa được xử lý hoặc loại file này chưa hỗ trợ AI.",
+            HttpStatus.BAD_REQUEST),
     FORBIDDEN_ACCESS("Bạn không có quyền thực hiện thao tác này", HttpStatus.FORBIDDEN),
 
     // Chat
