@@ -141,12 +141,20 @@ public class DocumentService {
     }
 
     @Transactional(readOnly = true)
-    public DocumentResponse getById(UUID documentId, UUID requesterId) {
+    public DocumentResponse getById(UUID documentId, com.example.swp391.aistudenthub.feature.auth.entity.User currentUser) {
         Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
 
-        if (!doc.getUserId().equals(requesterId)) {
-            throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+        boolean isPublic = com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC
+                .equals(doc.getVisibility());
+        if (!isPublic) {
+            if (currentUser == null) {
+                throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+            }
+            if (!doc.getUserId().equals(currentUser.getId())
+                    && !com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole())) {
+                throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+            }
         }
         return documentMapper.toResponse(doc);
     }
@@ -172,12 +180,20 @@ public class DocumentService {
     }
 
     @Transactional(readOnly = true)
-    public String downloadDocument(UUID documentId, UUID requesterId) {
+    public String downloadDocument(UUID documentId, com.example.swp391.aistudenthub.feature.auth.entity.User currentUser) {
         Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
 
-        if (!doc.getUserId().equals(requesterId)) {
-            throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+        boolean isPublic = com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC
+                .equals(doc.getVisibility());
+        if (!isPublic) {
+            if (currentUser == null) {
+                throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+            }
+            if (!doc.getUserId().equals(currentUser.getId())
+                    && !com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole())) {
+                throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+            }
         }
 
         return doc.getFileUrl();
@@ -425,13 +441,8 @@ public class DocumentService {
     /**
      * Determines the correct Cloudinary resource_type for signed URL generation.
      * Legacy PDFs were uploaded as "raw", new PDFs are uploaded as "image".
-<<<<<<< HEAD
-=======
      * Falls back to the stored value, then derives from MIME type, then defaults to "image".
      * PDFs are uploaded as "raw" — must use "raw" when building the signed URL too.
->>>>>>> 02604b57180f4574f244079d662e3cb337cf4402
-     * Falls back to the stored value, then derives from MIME type, then defaults to
-     * "image".
      */
     private String resolveResourceType(Document doc) {
         if (doc.getStorageResourceType() != null) {
@@ -516,5 +527,25 @@ public class DocumentService {
             log.error("Failed to stream document {} from {}", documentId, doc.getFileUrl(), e);
             throw new AppException(ErrorCode.DOCUMENT_NOT_FOUND);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<DocumentResponse> searchPublicDocuments(
+            String keyword,
+            String subject,
+            String major,
+            org.springframework.data.domain.Pageable pageable) {
+        return documentRepository.searchAndFilterPublic(keyword, subject, major, pageable)
+                .map(documentMapper::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public com.example.swp391.aistudenthub.feature.document.dto.response.DocumentFilterOptionsResponse getPublicFilterOptions() {
+        List<String> subjects = documentRepository.findDistinctPublicSubjects();
+        List<String> majors = documentRepository.findDistinctPublicMajors();
+        return com.example.swp391.aistudenthub.feature.document.dto.response.DocumentFilterOptionsResponse.builder()
+                .subjects(subjects)
+                .majors(majors)
+                .build();
     }
 }
