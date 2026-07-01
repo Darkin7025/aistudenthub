@@ -12,4 +12,7 @@ import java.util.UUID;
 public interface ChatSessionRepository extends JpaRepository<ChatSession, UUID> {
     List<ChatSession> findByUserIdOrderByUpdatedAtDesc(UUID userId);
     Optional<ChatSession> findByIdAndUserId(UUID id, UUID userId);
+
+    // ---- Admin / Dashboard ----
+    /** Tổng số chat sessions (count() đã có sẵn từ JpaRepository). */
 }
