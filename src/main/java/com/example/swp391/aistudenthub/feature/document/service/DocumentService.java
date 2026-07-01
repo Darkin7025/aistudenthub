@@ -433,7 +433,8 @@ public class DocumentService {
             Document doc,
             com.example.swp391.aistudenthub.feature.auth.entity.User currentUser) {
         // Tài liệu PUBLIC cho phép bất kỳ user nào đã đăng nhập xem được
-        return com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC.equals(doc.getVisibility())
+        return com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC
+                .equals(doc.getVisibility())
                 || doc.getUserId().equals(currentUser.getId())
                 || com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole());
     }
@@ -441,8 +442,14 @@ public class DocumentService {
     /**
      * Determines the correct Cloudinary resource_type for signed URL generation.
      * Legacy PDFs were uploaded as "raw", new PDFs are uploaded as "image".
-     * Falls back to the stored value, then derives from MIME type, then defaults to "image".
+     * <<<<<<< HEAD
+     * =======
+     * Falls back to the stored value, then derives from MIME type, then defaults to
+     * "image".
      * PDFs are uploaded as "raw" — must use "raw" when building the signed URL too.
+     * >>>>>>> 02604b57180f4574f244079d662e3cb337cf4402
+     * Falls back to the stored value, then derives from MIME type, then defaults to
+     * "image".
      */
     private String resolveResourceType(Document doc) {
         if (doc.getStorageResourceType() != null) {
