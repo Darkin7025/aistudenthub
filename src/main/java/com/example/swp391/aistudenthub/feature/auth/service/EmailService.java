@@ -20,7 +20,7 @@ public class EmailService {
     @Value("${brevo.api-key}")
     private String apiKey;
 
-    @Value("${brevo.from-email}")
+    @Value("${mail.from:${spring.mail.username}}")
     private String fromEmail;
 
     @Value("${brevo.from-name}")
