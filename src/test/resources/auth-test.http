@@ -1,26 +1,26 @@
 ### ============================================================
-### AI Study Hub — Auth API Test File
-### Dùng với VS Code Extension: REST Client (humao.rest-client)
-### Hoặc import vào Postman
+### AI Study Hub â€” Auth API Test File
+### DÃ¹ng vá»›i VS Code Extension: REST Client (humao.rest-client)
+### Hoáº·c import vÃ o Postman
 ### ============================================================
 
 @baseUrl = http://localhost:8080/api/v1/auth
 @contentType = application/json
 
 ### ============================================================
-### 1. ĐĂNG KÝ TÀI KHOẢN
+### 1. ÄÄ‚NG KÃ TÃ€I KHOáº¢N
 ### ============================================================
 POST {{baseUrl}}/register
 Content-Type: {{contentType}}
 
 {
-  "fullName": "Nguyễn Văn A",
+  "fullName": "Nguyá»…n VÄƒn A",
   "email": "nguyenvana@gmail.com",
   "password": "Password@123"
 }
 
 ### ============================================================
-### 2. ĐĂNG NHẬP — copy token từ response để dùng ở bước tiếp theo
+### 2. ÄÄ‚NG NHáº¬P â€” copy token tá»« response Ä‘á»ƒ dÃ¹ng á»Ÿ bÆ°á»›c tiáº¿p theo
 ### ============================================================
 # @name loginResponse
 POST {{baseUrl}}/login
@@ -32,21 +32,49 @@ Content-Type: {{contentType}}
 }
 
 ### ============================================================
-### 3. GỌI API CÓ BẢO VỆ (thay <TOKEN> bằng token từ bước 2)
+### 3. Gá»ŒI API CÃ“ Báº¢O Vá»† (thay <TOKEN> báº±ng token tá»« bÆ°á»›c 2)
 ### ============================================================
-@token = <DÁN_TOKEN_VÀO_ĐÂY>
+@token = <DÃN_TOKEN_VÃ€O_ÄÃ‚Y>
 
 GET http://localhost:8080/api/v1/test/me
 Authorization: Bearer {{token}}
 
 ### ============================================================
-### 4. ĐĂNG XUẤT
+### 4. ÄÄ‚NG XUáº¤T
 ### ============================================================
 POST {{baseUrl}}/logout
 Authorization: Bearer {{token}}
 
 ### ============================================================
-### 5. QUÊN MẬT KHẨU
+### 4b. CAP NHAT PROFILE (doi email / ten / avatar)
+### Luu y: sau khi doi email, token cu se khong con dung duoc.
+### Hay dang nhap lai bang email moi de lay token khac.
+### ============================================================
+PUT http://localhost:8080/api/v1/users/profile
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "fullName": "Nguyen Van A Updated",
+  "email": "nguyenvana.new@gmail.com",
+  "avatarUrl": "https://example.com/avatar.png"
+}
+
+### ============================================================
+### 4c. DOI MAT KHAU
+### ============================================================
+POST http://localhost:8080/api/v1/users/change-password
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "currentPassword": "Password@123",
+  "newPassword": "NewPassword@456",
+  "confirmPassword": "NewPassword@456"
+}
+
+### ============================================================
+### 5. QUÃŠN Máº¬T KHáº¨U
 ### ============================================================
 POST {{baseUrl}}/forgot-password
 Content-Type: {{contentType}}
@@ -56,7 +84,7 @@ Content-Type: {{contentType}}
 }
 
 ### ============================================================
-### 6. ĐẶT LẠI MẬT KHẨU (dùng token nhận từ email)
+### 6. Äáº¶T Láº I Máº¬T KHáº¨U (dÃ¹ng token nháº­n tá»« email)
 ### ============================================================
 POST {{baseUrl}}/reset-password
 Content-Type: {{contentType}}
@@ -67,12 +95,12 @@ Content-Type: {{contentType}}
 }
 
 ### ============================================================
-### TEST — Gọi API khi KHÔNG có token (phải trả 403)
+### TEST â€” Gá»i API khi KHÃ”NG cÃ³ token (pháº£i tráº£ 403)
 ### ============================================================
 GET http://localhost:8080/api/v1/test/me
 
 ### ============================================================
-### TEST — Đăng nhập sai mật khẩu (phải trả 401)
+### TEST â€” ÄÄƒng nháº­p sai máº­t kháº©u (pháº£i tráº£ 401)
 ### ============================================================
 POST {{baseUrl}}/login
 Content-Type: {{contentType}}
@@ -83,13 +111,13 @@ Content-Type: {{contentType}}
 }
 
 ### ============================================================
-### TEST — Đăng ký email đã tồn tại (phải trả 409)
+### TEST â€” ÄÄƒng kÃ½ email Ä‘Ã£ tá»“n táº¡i (pháº£i tráº£ 409)
 ### ============================================================
 POST {{baseUrl}}/register
 Content-Type: {{contentType}}
 
 {
-  "fullName": "Nguyễn Văn B",
+  "fullName": "Nguyá»…n VÄƒn B",
   "email": "nguyenvana@gmail.com",
   "password": "Password@123"
 }
