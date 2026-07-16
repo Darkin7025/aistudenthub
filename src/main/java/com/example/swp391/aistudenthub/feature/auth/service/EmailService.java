@@ -20,7 +20,7 @@ public class EmailService {
     @Value("${brevo.api-key:placeholder}")
     private String apiKey;
 
-    @Value("${brevo.from-email:aistudyhub@11547453.brevosend.com}")
+    @Value("${brevo.from-email:tancuong7025@gmail.com}")
     private String fromEmail;
 
     @Value("${brevo.from-name:AI Study Hub}")
