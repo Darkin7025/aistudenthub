@@ -13,7 +13,7 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
+    @Value("${mail.from:${spring.mail.username}}")
     private String fromEmail;
 
     @Value("${app.base-url}")
