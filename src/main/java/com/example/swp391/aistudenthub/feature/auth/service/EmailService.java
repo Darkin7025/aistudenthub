@@ -17,16 +17,16 @@ public class EmailService {
 
     private final RestClient restClient;
 
-    @Value("${brevo.api-key}")
+    @Value("${brevo.api-key:placeholder}")
     private String apiKey;
 
-    @Value("${brevo.from-email}")
+    @Value("${brevo.from-email:aistudyhub@11547453.brevosend.com}")
     private String fromEmail;
 
-    @Value("${brevo.from-name}")
+    @Value("${brevo.from-name:AI Study Hub}")
     private String fromName;
 
-    @Value("${app.base-url}")
+    @Value("${app.base-url:http://localhost:5173}")
     private String baseUrl;
 
     public EmailService() {
