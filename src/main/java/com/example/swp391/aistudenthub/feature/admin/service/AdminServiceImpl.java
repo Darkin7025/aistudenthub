@@ -17,6 +17,10 @@ import com.example.swp391.aistudenthub.feature.auth.entity.User;
 import com.example.swp391.aistudenthub.feature.auth.repository.UserRepository;
 import com.example.swp391.aistudenthub.feature.chat.repository.ChatSessionRepository;
 import com.example.swp391.aistudenthub.feature.document.repository.DocumentRepository;
+import com.example.swp391.aistudenthub.feature.document.dto.response.DocumentResponse;
+import com.example.swp391.aistudenthub.feature.document.entity.Document;
+import com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility;
+import com.example.swp391.aistudenthub.feature.document.mapper.DocumentMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -40,6 +44,7 @@ public class AdminServiceImpl implements AdminService {
     private final DocumentRepository documentRepository;
     private final ChatSessionRepository chatSessionRepository;
     private final SystemConfigRepository systemConfigRepository;
+    private final DocumentMapper documentMapper;
 
     // =========================================================
     // USER MANAGEMENT
@@ -243,5 +248,44 @@ public class AdminServiceImpl implements AdminService {
                 .description(config.getDescription())
                 .updatedAt(config.getUpdatedAt())
                 .build();
+    }
+
+    // =========================================================
+    // DOCUMENT MANAGEMENT
+    // =========================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<DocumentResponse> getAllDocuments(
+            String keyword,
+            String subject,
+            String major,
+            DocumentVisibility visibility,
+            Pageable pageable) {
+
+        if (keyword != null && keyword.trim().isEmpty()) {
+            keyword = null;
+        }
+        if (subject != null && subject.trim().isEmpty()) {
+            subject = null;
+        }
+        if (major != null && major.trim().isEmpty()) {
+            major = null;
+        }
+
+        return documentRepository.searchAndFilterAll(visibility, keyword, subject, major, pageable)
+                .map(documentMapper::toResponse);
+    }
+
+    @Override
+    @Transactional
+    public MessageResponse deleteDocument(UUID documentId) {
+        Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
+                .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+
+        doc.setDeletedAt(OffsetDateTime.now());
+        documentRepository.save(doc);
+        log.info("Admin soft-deleted violating document: id={}", documentId);
+        return new MessageResponse("Tài liệu đã được xóa thành công");
     }
 }
