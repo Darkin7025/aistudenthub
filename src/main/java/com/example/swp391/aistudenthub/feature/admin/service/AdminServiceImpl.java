@@ -17,10 +17,6 @@ import com.example.swp391.aistudenthub.feature.auth.entity.User;
 import com.example.swp391.aistudenthub.feature.auth.repository.UserRepository;
 import com.example.swp391.aistudenthub.feature.chat.repository.ChatSessionRepository;
 import com.example.swp391.aistudenthub.feature.document.repository.DocumentRepository;
-import com.example.swp391.aistudenthub.feature.document.dto.response.DocumentResponse;
-import com.example.swp391.aistudenthub.feature.document.entity.Document;
-import com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility;
-import com.example.swp391.aistudenthub.feature.document.mapper.DocumentMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,6 +29,8 @@ import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
@@ -44,7 +42,7 @@ public class AdminServiceImpl implements AdminService {
     private final DocumentRepository documentRepository;
     private final ChatSessionRepository chatSessionRepository;
     private final SystemConfigRepository systemConfigRepository;
-    private final DocumentMapper documentMapper;
+    private final SystemLogService systemLogService;
 
     // =========================================================
     // USER MANAGEMENT
@@ -178,7 +176,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional(readOnly = true)
     public List<SystemConfigResponse> getAllConfigs() {
-        return systemConfigRepository.findAll()
+        return systemConfigRepository.findAllByOrderByConfigKeyAsc()
                 .stream()
                 .map(this::toConfigResponse)
                 .toList();
@@ -186,7 +184,18 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    public List<SystemConfigResponse> updateConfigs(UpdateSystemConfigRequest request) {
+    public List<SystemConfigResponse> updateConfigs(UpdateSystemConfigRequest request, UUID adminUserId, String adminEmail) {
+        Set<String> configKeys = new HashSet<>();
+        for (UpdateSystemConfigRequest.ConfigEntry entry : request.getConfigs()) {
+            String key = entry.getConfigKey().trim();
+            if (!configKeys.add(key)) {
+                throw new AppException(ErrorCode.VALIDATION_ERROR, "Config key bị trùng: " + key);
+            }
+            entry.setConfigKey(key);
+            entry.setConfigValue(entry.getConfigValue().trim());
+            validateConfigValue(entry);
+        }
+
         List<SystemConfig> toSave = request.getConfigs().stream()
                 .map(entry -> {
                     SystemConfig config = systemConfigRepository.findById(entry.getConfigKey())
@@ -199,6 +208,8 @@ public class AdminServiceImpl implements AdminService {
                 .toList();
 
         List<SystemConfig> saved = systemConfigRepository.saveAll(toSave);
+        systemLogService.audit("SYSTEM_CONFIG_UPDATED", "Updated " + saved.size() + " system configuration value(s)",
+                "AdminService", adminUserId, adminEmail, "SYSTEM_CONFIG", String.join(",", configKeys));
         log.info("Admin updated {} system config(s)", saved.size());
         return saved.stream().map(this::toConfigResponse).toList();
     }
@@ -250,42 +261,24 @@ public class AdminServiceImpl implements AdminService {
                 .build();
     }
 
-    // =========================================================
-    // DOCUMENT MANAGEMENT
-    // =========================================================
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<DocumentResponse> getAllDocuments(
-            String keyword,
-            String subject,
-            String major,
-            DocumentVisibility visibility,
-            Pageable pageable) {
-
-        if (keyword != null && keyword.trim().isEmpty()) {
-            keyword = null;
+    private void validateConfigValue(UpdateSystemConfigRequest.ConfigEntry entry) {
+        String key = entry.getConfigKey();
+        String value = entry.getConfigValue();
+        if (key.startsWith("feature.") && key.endsWith(".enabled")
+                && !("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value))) {
+            throw new AppException(ErrorCode.VALIDATION_ERROR,
+                    "Giá trị của feature flag phải là true hoặc false: " + key);
         }
-        if (subject != null && subject.trim().isEmpty()) {
-            subject = null;
+        if ("system.max_file_size_mb".equals(key)) {
+            try {
+                int maxFileSize = Integer.parseInt(value);
+                if (maxFileSize < 1 || maxFileSize > 10) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException ex) {
+                throw new AppException(ErrorCode.VALIDATION_ERROR,
+                        "system.max_file_size_mb phải là số nguyên từ 1 đến 10");
+            }
         }
-        if (major != null && major.trim().isEmpty()) {
-            major = null;
-        }
-
-        return documentRepository.searchAndFilterAll(visibility, keyword, subject, major, pageable)
-                .map(documentMapper::toResponse);
-    }
-
-    @Override
-    @Transactional
-    public MessageResponse deleteDocument(UUID documentId) {
-        Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
-                .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
-
-        doc.setDeletedAt(OffsetDateTime.now());
-        documentRepository.save(doc);
-        log.info("Admin soft-deleted violating document: id={}", documentId);
-        return new MessageResponse("Tài liệu đã được xóa thành công");
     }
 }

@@ -12,9 +12,6 @@ import com.example.swp391.aistudenthub.common.dto.MessageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import com.example.swp391.aistudenthub.feature.document.dto.response.DocumentResponse;
-import com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility;
-
 import java.util.List;
 import java.util.UUID;
 
@@ -47,16 +44,5 @@ public interface AdminService {
 
     List<SystemConfigResponse> getAllConfigs();
 
-    List<SystemConfigResponse> updateConfigs(UpdateSystemConfigRequest request);
-
-    // ---- Document Management ----
-
-    Page<DocumentResponse> getAllDocuments(
-            String keyword,
-            String subject,
-            String major,
-            DocumentVisibility visibility,
-            Pageable pageable);
-
-    MessageResponse deleteDocument(UUID documentId);
+    List<SystemConfigResponse> updateConfigs(UpdateSystemConfigRequest request, UUID adminUserId, String adminEmail);
 }
