@@ -4,12 +4,14 @@ import com.example.swp391.aistudenthub.common.dto.ApiResponse;
 import com.example.swp391.aistudenthub.feature.admin.dto.request.UpdateSystemConfigRequest;
 import com.example.swp391.aistudenthub.feature.admin.dto.response.SystemConfigResponse;
 import com.example.swp391.aistudenthub.feature.admin.service.AdminService;
+import com.example.swp391.aistudenthub.feature.auth.entity.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -58,9 +60,10 @@ public class AdminSystemConfigController {
     @Operation(summary = "Cập nhật cấu hình hệ thống (batch upsert)",
                description = "Upsert nhiều key-value config trong một request. Key chưa có sẽ được tạo mới.")
     public ResponseEntity<ApiResponse<List<SystemConfigResponse>>> updateConfigs(
-            @Valid @RequestBody UpdateSystemConfigRequest request) {
+            @Valid @RequestBody UpdateSystemConfigRequest request,
+            @AuthenticationPrincipal User currentUser) {
 
-        List<SystemConfigResponse> updated = adminService.updateConfigs(request);
+        List<SystemConfigResponse> updated = adminService.updateConfigs(request, currentUser.getId(), currentUser.getEmail());
         return ResponseEntity.ok(ApiResponse.success(updated, "Cấu hình hệ thống đã được cập nhật thành công"));
     }
 }

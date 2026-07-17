@@ -12,7 +12,16 @@ import java.util.UUID;
 public interface ChatSessionRepository extends JpaRepository<ChatSession, UUID> {
     List<ChatSession> findByUserIdOrderByUpdatedAtDesc(UUID userId);
     Optional<ChatSession> findByIdAndUserId(UUID id, UUID userId);
+    boolean existsByUserIdAndTitle(UUID userId, String title);
 
     // ---- Admin / Dashboard ----
     /** Tổng số chat sessions (count() đã có sẵn từ JpaRepository). */
+    org.springframework.data.domain.Page<ChatSession> findAllByOrderByUpdatedAtDesc(org.springframework.data.domain.Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Query("SELECT c FROM ChatSession c, User u WHERE c.userId = u.id AND " +
+           "(:keyword IS NULL OR LOWER(c.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+           "ORDER BY c.updatedAt DESC")
+    org.springframework.data.domain.Page<ChatSession> searchSessions(@org.springframework.data.repository.query.Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
 }

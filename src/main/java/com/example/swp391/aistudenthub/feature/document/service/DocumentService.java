@@ -12,6 +12,7 @@ import com.example.swp391.aistudenthub.feature.document.enums.PreviewMode;
 import com.example.swp391.aistudenthub.feature.document.mapper.DocumentMapper;
 import com.example.swp391.aistudenthub.feature.document.repository.DocumentRepository;
 import com.example.swp391.aistudenthub.feature.document.repository.FolderRepository;
+import com.example.swp391.aistudenthub.feature.admin.repository.SystemConfigRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +44,7 @@ import java.util.UUID;
 public class DocumentService {
 
     private static final int TEXT_PREVIEW_LIMIT = 50_000;
-    private static final long MAX_FILE_SIZE = 10L * 1024 * 1024;
+    private static final long DEFAULT_MAX_FILE_SIZE = 10L * 1024 * 1024;
     private static final String OFFICE_PREVIEW_MESSAGE = "Office preview uses external viewer. If it cannot load, please download the file.";
     private static final String UNSUPPORTED_PREVIEW_MESSAGE = "Preview is not supported for this file type. Please download the file.";
     private static final String MISSING_FILE_URL_MESSAGE = "Preview is unavailable because the file URL is missing. Please download the file.";
@@ -55,9 +56,11 @@ public class DocumentService {
     private final ObjectMapper objectMapper;
     private final DocumentPreviewResolver previewResolver;
     private final OfficeTextExtractor officeTextExtractor;
+    private final SystemConfigRepository systemConfigRepository;
 
     @Transactional
     public DocumentResponse upload(MultipartFile file, UploadDocumentRequest request, UUID userId) {
+        checkUploadFeatureEnabled();
         validateFile(file);
         validateCustomMetadata(request.getCustomMetadata());
         validateFolderOwnership(request.getFolderId(), userId);
@@ -147,6 +150,9 @@ public class DocumentService {
 
         boolean isPublic = com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC
                 .equals(doc.getVisibility());
+        if (isPublic) {
+            checkPublicDocumentsFeatureEnabled();
+        }
         if (!isPublic) {
             if (currentUser == null) {
                 throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
@@ -186,6 +192,9 @@ public class DocumentService {
 
         boolean isPublic = com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC
                 .equals(doc.getVisibility());
+        if (isPublic) {
+            checkPublicDocumentsFeatureEnabled();
+        }
         if (!isPublic) {
             if (currentUser == null) {
                 throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
@@ -279,6 +288,11 @@ public class DocumentService {
             com.example.swp391.aistudenthub.feature.auth.entity.User currentUser) {
         Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+
+        if (com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC
+                .equals(doc.getVisibility())) {
+            checkPublicDocumentsFeatureEnabled();
+        }
 
         if (!canPreviewDocument(doc, currentUser)) {
             throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
@@ -382,8 +396,10 @@ public class DocumentService {
         if (file == null || file.isEmpty()) {
             throw new AppException(ErrorCode.EMPTY_FILE);
         }
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new AppException(ErrorCode.FILE_TOO_LARGE);
+        long maxFileSize = getMaxUploadSizeBytes();
+        if (file.getSize() > maxFileSize) {
+            throw new AppException(ErrorCode.FILE_TOO_LARGE,
+                    "File vượt quá dung lượng cho phép (" + (maxFileSize / (1024 * 1024)) + "MB)");
         }
     }
 
@@ -442,12 +458,9 @@ public class DocumentService {
     /**
      * Determines the correct Cloudinary resource_type for signed URL generation.
      * Legacy PDFs were uploaded as "raw", new PDFs are uploaded as "image".
-     * <<<<<<< HEAD
-     * =======
      * Falls back to the stored value, then derives from MIME type, then defaults to
      * "image".
      * PDFs are uploaded as "raw" — must use "raw" when building the signed URL too.
-     * >>>>>>> 02604b57180f4574f244079d662e3cb337cf4402
      * Falls back to the stored value, then derives from MIME type, then defaults to
      * "image".
      */
@@ -472,6 +485,11 @@ public class DocumentService {
             com.example.swp391.aistudenthub.feature.auth.entity.User currentUser) {
         Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+
+        if (com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC
+                .equals(doc.getVisibility())) {
+            checkPublicDocumentsFeatureEnabled();
+        }
 
         if (!canPreviewDocument(doc, currentUser)) {
             throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
@@ -542,17 +560,49 @@ public class DocumentService {
             String subject,
             String major,
             org.springframework.data.domain.Pageable pageable) {
+        checkPublicDocumentsFeatureEnabled();
         return documentRepository.searchAndFilterPublic(keyword, subject, major, pageable)
                 .map(documentMapper::toResponse);
     }
 
     @Transactional(readOnly = true)
     public com.example.swp391.aistudenthub.feature.document.dto.response.DocumentFilterOptionsResponse getPublicFilterOptions() {
+        checkPublicDocumentsFeatureEnabled();
         List<String> subjects = documentRepository.findDistinctPublicSubjects();
         List<String> majors = documentRepository.findDistinctPublicMajors();
         return com.example.swp391.aistudenthub.feature.document.dto.response.DocumentFilterOptionsResponse.builder()
                 .subjects(subjects)
                 .majors(majors)
                 .build();
+    }
+
+    private void checkUploadFeatureEnabled() {
+        checkFeatureEnabled("feature.upload.enabled");
+    }
+
+    private void checkPublicDocumentsFeatureEnabled() {
+        checkFeatureEnabled("feature.public_docs.enabled");
+    }
+
+    private void checkFeatureEnabled(String key) {
+        systemConfigRepository.findById(key)
+                .ifPresent(config -> {
+                    if (!Boolean.parseBoolean(config.getConfigValue().trim())) {
+                        throw new AppException(ErrorCode.FEATURE_DISABLED);
+                    }
+                });
+    }
+
+    private long getMaxUploadSizeBytes() {
+        return systemConfigRepository.findById("system.max_file_size_mb")
+                .map(config -> {
+                    try {
+                        long megabytes = Long.parseLong(config.getConfigValue().trim());
+                        return megabytes > 0 && megabytes <= 10 ? megabytes * 1024 * 1024 : DEFAULT_MAX_FILE_SIZE;
+                    } catch (NumberFormatException ignored) {
+                        return DEFAULT_MAX_FILE_SIZE;
+                    }
+                })
+                .orElse(DEFAULT_MAX_FILE_SIZE);
     }
 }

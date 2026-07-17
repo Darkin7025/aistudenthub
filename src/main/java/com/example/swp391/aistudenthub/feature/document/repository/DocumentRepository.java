@@ -70,18 +70,6 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
             @org.springframework.data.repository.query.Param("major") String major,
             org.springframework.data.domain.Pageable pageable);
 
-    @org.springframework.data.jpa.repository.Query("SELECT d FROM Document d WHERE d.deletedAt IS NULL " +
-            "AND (:visibility IS NULL OR d.visibility = :visibility) AND " +
-            "(:keyword IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(d.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(d.originalFileName) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
-            "(:subject IS NULL OR d.subject = :subject) AND " +
-            "(:major IS NULL OR d.major = :major)")
-    org.springframework.data.domain.Page<Document> searchAndFilterAll(
-            @org.springframework.data.repository.query.Param("visibility") com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility visibility,
-            @org.springframework.data.repository.query.Param("keyword") String keyword,
-            @org.springframework.data.repository.query.Param("subject") String subject,
-            @org.springframework.data.repository.query.Param("major") String major,
-            org.springframework.data.domain.Pageable pageable);
-
     // ---- Admin / Dashboard queries ----
 
     /** Tổng số documents chưa xóa mềm. */

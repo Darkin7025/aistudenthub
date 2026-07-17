@@ -38,7 +38,10 @@ public enum ErrorCode {
 
     // Folder
     FOLDER_NOT_FOUND("Thư mục không tồn tại", HttpStatus.NOT_FOUND),
-    FOLDER_NOT_EMPTY("Thư mục không rỗng (đang chứa tài liệu hoặc thư mục con)", HttpStatus.BAD_REQUEST);
+    FOLDER_NOT_EMPTY("Thư mục không rỗng (đang chứa tài liệu hoặc thư mục con)", HttpStatus.BAD_REQUEST),
+
+    // System
+    FEATURE_DISABLED("Tính năng này hiện đang bị tắt", HttpStatus.FORBIDDEN);
 
     private final String message;
     private final HttpStatus httpStatus;

@@ -13,6 +13,7 @@ import com.example.swp391.aistudenthub.feature.chat.enums.MessageSender;
 import com.example.swp391.aistudenthub.feature.chat.mapper.ChatMapper;
 import com.example.swp391.aistudenthub.feature.chat.repository.ChatMessageRepository;
 import com.example.swp391.aistudenthub.feature.chat.repository.ChatSessionRepository;
+import com.example.swp391.aistudenthub.feature.admin.repository.SystemConfigRepository;
 import com.example.swp391.aistudenthub.feature.document.entity.Document;
 import com.example.swp391.aistudenthub.feature.document.enums.PreviewMode;
 import com.example.swp391.aistudenthub.feature.document.repository.DocumentRepository;
@@ -46,9 +47,11 @@ public class ChatServiceImpl implements ChatService {
     private final ChatMapper chatMapper;
     private final TransactionTemplate transactionTemplate;
     private final DocumentPreviewResolver previewResolver;
+    private final SystemConfigRepository systemConfigRepository;
 
     @Override
     public ChatResponse chat(ChatRequest request, UUID userId) {
+        checkAiChatFeatureEnabled();
         String message = requireText(request.getMessage());
 
         ChatSession session = transactionTemplate.execute(status -> {
@@ -82,6 +85,7 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public ChatResponse chatWithDocument(UUID documentId, DocumentChatRequest request, UUID userId) {
+        checkAiChatFeatureEnabled();
         String question = requireText(request.getQuestion());
         Document document = findOwnedDocument(documentId, userId);
         ensureDocumentChatCapable(document);
@@ -118,6 +122,7 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public SseEmitter streamChat(ChatRequest request, UUID userId) {
+        checkAiChatFeatureEnabled();
         String message = requireText(request.getMessage());
         ChatSession session = transactionTemplate.execute(status -> {
             ChatSession currentSession = getOrCreateSession(
@@ -138,6 +143,7 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public SseEmitter streamChatWithDocument(UUID documentId, DocumentChatRequest request, UUID userId) {
+        checkAiChatFeatureEnabled();
         String question = requireText(request.getQuestion());
         Document document = findOwnedDocument(documentId, userId);
         ensureDocumentChatCapable(document);
@@ -401,5 +407,14 @@ public class ChatServiceImpl implements ChatService {
         if (!StringUtils.hasText(document.getExtractedText())) {
             throw new AppException(ErrorCode.DOCUMENT_CONTENT_NOT_AVAILABLE);
         }
+    }
+
+    private void checkAiChatFeatureEnabled() {
+        systemConfigRepository.findById("feature.ai_chat.enabled")
+                .ifPresent(config -> {
+                    if (!Boolean.parseBoolean(config.getConfigValue().trim())) {
+                        throw new AppException(ErrorCode.FEATURE_DISABLED);
+                    }
+                });
     }
 }
