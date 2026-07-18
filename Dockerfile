@@ -17,5 +17,5 @@ COPY --from=builder /app/target/*.jar app.jar
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Run the application
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
+# Run the application with optimized memory settings for 512MB RAM environment
+ENTRYPOINT ["java", "-Xms128m", "-Xmx256m", "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=128m", "-jar", "app.jar"]
