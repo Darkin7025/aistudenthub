@@ -45,4 +45,22 @@ public interface AdminService {
     List<SystemConfigResponse> getAllConfigs();
 
     List<SystemConfigResponse> updateConfigs(UpdateSystemConfigRequest request, UUID adminUserId, String adminEmail);
+
+    // ---- Document Management ----
+
+    Page<com.example.swp391.aistudenthub.feature.admin.dto.response.AdminDocumentResponse> getAllDocuments(
+            UUID userId,
+            String keyword,
+            String subject,
+            String major,
+            com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility visibility,
+            Pageable pageable);
+
+    com.example.swp391.aistudenthub.feature.admin.dto.response.AdminDocumentResponse getDocumentById(UUID documentId);
+
+    com.example.swp391.aistudenthub.feature.document.dto.response.UploadStatusResponse getDocumentUploadStatus(
+            UUID documentId,
+            com.example.swp391.aistudenthub.feature.auth.entity.User adminUser);
+
+    MessageResponse softDeleteDocumentByAdmin(UUID documentId, UUID adminUserId, String adminEmail);
 }

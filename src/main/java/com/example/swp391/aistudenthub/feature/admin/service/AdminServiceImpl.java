@@ -17,6 +17,13 @@ import com.example.swp391.aistudenthub.feature.auth.entity.User;
 import com.example.swp391.aistudenthub.feature.auth.repository.UserRepository;
 import com.example.swp391.aistudenthub.feature.chat.repository.ChatSessionRepository;
 import com.example.swp391.aistudenthub.feature.document.repository.DocumentRepository;
+import com.example.swp391.aistudenthub.feature.admin.dto.response.AdminDocumentResponse;
+import com.example.swp391.aistudenthub.feature.document.dto.response.UploadStatusResponse;
+import com.example.swp391.aistudenthub.feature.document.entity.Document;
+import com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility;
+import com.example.swp391.aistudenthub.feature.document.enums.PreviewMode;
+import com.example.swp391.aistudenthub.feature.document.service.DocumentPreviewResolver;
+import com.example.swp391.aistudenthub.feature.document.service.DocumentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -43,6 +50,8 @@ public class AdminServiceImpl implements AdminService {
     private final ChatSessionRepository chatSessionRepository;
     private final SystemConfigRepository systemConfigRepository;
     private final SystemLogService systemLogService;
+    private final DocumentService documentService;
+    private final DocumentPreviewResolver previewResolver;
 
     // =========================================================
     // USER MANAGEMENT
@@ -215,8 +224,105 @@ public class AdminServiceImpl implements AdminService {
     }
 
     // =========================================================
+    // DOCUMENT MANAGEMENT
+    // =========================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<AdminDocumentResponse> getAllDocuments(
+            UUID userId,
+            String keyword,
+            String subject,
+            String major,
+            DocumentVisibility visibility,
+            Pageable pageable) {
+        if (keyword != null && keyword.trim().isEmpty()) keyword = null;
+        if (subject != null && subject.trim().isEmpty()) subject = null;
+        if (major != null && major.trim().isEmpty()) major = null;
+
+        return documentRepository.searchAllDocumentsAdmin(userId, keyword, subject, major, visibility, pageable)
+                .map(this::toAdminDocumentResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AdminDocumentResponse getDocumentById(UUID documentId) {
+        Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
+                .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+        return toAdminDocumentResponse(doc);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UploadStatusResponse getDocumentUploadStatus(UUID documentId, User adminUser) {
+        return documentService.getUploadStatus(documentId, adminUser);
+    }
+
+    @Override
+    @Transactional
+    public MessageResponse softDeleteDocumentByAdmin(UUID documentId, UUID adminUserId, String adminEmail) {
+        Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
+                .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+
+        doc.setDeletedAt(OffsetDateTime.now());
+        documentRepository.save(doc);
+
+        systemLogService.audit("DOCUMENT_DELETED_BY_ADMIN",
+                "Deleted document: " + doc.getTitle() + " (ID: " + documentId + ")",
+                "AdminService", adminUserId, adminEmail, "DOCUMENT", documentId.toString());
+
+        log.info("Admin {} soft-deleted document {}", adminEmail, documentId);
+        return new MessageResponse("Tài liệu đã được xóa bởi Admin thành công");
+    }
+
+    // =========================================================
     // PRIVATE HELPERS
     // =========================================================
+
+    private AdminDocumentResponse toAdminDocumentResponse(Document doc) {
+        if (doc == null) return null;
+
+        String uploaderEmail = null;
+        String uploaderFullName = null;
+        if (doc.getUserId() != null) {
+            User user = userRepository.findById(doc.getUserId()).orElse(null);
+            if (user != null) {
+                uploaderEmail = user.getEmail();
+                uploaderFullName = user.getFullName();
+            }
+        }
+
+        PreviewMode previewMode = previewResolver.resolveMode(doc.getOriginalFileName(), doc.getFileType());
+        boolean aiSupported = previewResolver.isAiCapable(previewMode)
+                && org.springframework.util.StringUtils.hasText(doc.getExtractedText());
+
+        return AdminDocumentResponse.builder()
+                .id(doc.getId())
+                .userId(doc.getUserId())
+                .uploaderEmail(uploaderEmail)
+                .uploaderFullName(uploaderFullName)
+                .title(doc.getTitle())
+                .description(doc.getDescription())
+                .fileUrl(doc.getFileUrl())
+                .fileName(doc.getFileName())
+                .originalFileName(doc.getOriginalFileName())
+                .fileSize(doc.getFileSize())
+                .fileType(doc.getFileType())
+                .previewMode(previewMode != null ? previewMode.name() : null)
+                .aiSupported(aiSupported)
+                .visibility(doc.getVisibility())
+                .subject(doc.getSubject())
+                .major(doc.getMajor())
+                .documentType(doc.getDocumentType())
+                .uploadStatus(doc.getUploadStatus())
+                .uploadProgress(doc.getUploadProgress())
+                .folderId(doc.getFolderId())
+                .createdAt(doc.getCreatedAt())
+                .updatedAt(doc.getUpdatedAt())
+                .deletedAt(doc.getDeletedAt())
+                .customMetadata(doc.getCustomMetadata())
+                .build();
+    }
 
     /** Chuyển MIME type sang nhãn thân thiện để hiển thị trên dashboard. */
     private String resolveMimeLabel(String mimeType) {
