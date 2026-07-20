@@ -185,28 +185,29 @@ public class GeminiAIServiceImpl implements AIService {
 
     private String callGeminiVisionApi(String imageUrl, String question) throws Exception {
         String url = apiUrl + "/" + model + ":generateContent?key=" + apiKey;
-
+        // Tạo payload gửi tới Gemini API
         ObjectNode payload = objectMapper.createObjectNode();
 
         // System instruction
+        // Thiết lập system instruction để định hướng cách Gemini trả lời
         ObjectNode systemInstruction = payload.putObject("systemInstruction");
         systemInstruction.putArray("parts").addObject().put("text", SYSTEM_INSTRUCTION);
 
-        // User content: image part + text question part
+        // Tạo nội dung người dùng gửi lên Gemini
         ArrayNode contents = payload.putArray("contents");
         ObjectNode userContent = contents.addObject();
         ArrayNode parts = userContent.putArray("parts");
 
-        // Image part — Gemini Vision nhận URL công khai qua fileData
+        // Thêm ảnh vào request bằng URL công khai
         ObjectNode imagePart = parts.addObject();
         ObjectNode fileData = imagePart.putObject("fileData");
         fileData.put("fileUri", imageUrl);
         // mimeType để trống, Gemini tự detect từ URL
 
-        // Text question part
-        parts.addObject().put("text",
-                "Hãy phân tích hình ảnh này và trả lời câu hỏi sau: " + question);
+        // Thêm câu hỏi của người dùng liên quan đến hình ảnh
+        parts.addObject().put("text", "Hãy phân tích hình ảnh này và trả lời câu hỏi sau: " + question);
 
+        // Cấu hình số lượng token tối đa Gemini được phép sinh ra
         ObjectNode generationConfig = payload.putObject("generationConfig");
         generationConfig.put("maxOutputTokens", maxTokens);
 

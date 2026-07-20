@@ -48,4 +48,5 @@ public class DocumentResponse {
     private OffsetDateTime createdAt;
     
     private String customMetadata;
+    private String extractedText;
 }

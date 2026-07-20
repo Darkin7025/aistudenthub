@@ -17,15 +17,15 @@ public class UploadDocumentRequest {
 
     @NotBlank(message = "Tiêu đề không được để trống")
     @Size(max = 255, message = "Tiêu đề tối đa 255 ký tự")
-    @Schema(description = "Tiêu đề tài liệu", example = "Giáo trình Toán Cao Cấp")
+    @Schema(description = "Tiêu đề tài liệu")
     private String title;
 
     @Size(max = 1000, message = "Mô tả tối đa 1000 ký tự")
-    @Schema(description = "Mô tả ngắn về tài liệu", example = "Tài liệu ôn tập chương 1-3")
+    @Schema(description = "Mô tả ngắn về tài liệu")
     private String description;
 
     @Size(max = 255, message = "Môn học tối đa 255 ký tự")
-    @Schema(description = "Tên môn học", example = "Toán Cao Cấp")
+    @Schema(description = "Tên môn học")
     private String subject;
 
     @Size(max = 255, message = "Chuyên ngành tối đa 255 ký tự")

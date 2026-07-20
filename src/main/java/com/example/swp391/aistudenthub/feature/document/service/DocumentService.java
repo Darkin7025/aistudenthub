@@ -235,7 +235,29 @@ public class DocumentService {
             doc.setVisibility(request.getVisibility());
         }
 
+        if (request.getExtractedText() != null) {
+            doc.setExtractedText(request.getExtractedText());
+        }
+
         Document saved = documentRepository.save(doc);
+        return documentMapper.toResponse(saved);
+    }
+
+    @Transactional
+    public DocumentResponse updateDocumentContent(
+            UUID documentId,
+            com.example.swp391.aistudenthub.feature.document.dto.request.DocumentContentUpdateRequest request,
+            UUID requesterId) {
+        Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
+                .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+
+        if (!doc.getUserId().equals(requesterId)) {
+            throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+
+        doc.setExtractedText(request.getContent());
+        Document saved = documentRepository.save(doc);
+        log.info("Document content updated: id={}, user={}", documentId, requesterId);
         return documentMapper.toResponse(saved);
     }
 
