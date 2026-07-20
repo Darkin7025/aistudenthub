@@ -16,4 +16,5 @@ public class DocumentUpdateRequest {
     private DocumentVisibility visibility;
     private java.util.UUID folderId;
     private String customMetadata;
+    private String extractedText;
 }

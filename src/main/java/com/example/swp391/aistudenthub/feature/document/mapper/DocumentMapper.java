@@ -41,6 +41,7 @@ public class DocumentMapper {
                 .uploadProgress(doc.getUploadProgress())
                 .createdAt(doc.getCreatedAt())
                 .customMetadata(doc.getCustomMetadata())
+                .extractedText(doc.getExtractedText())
                 .build();
     }
 }

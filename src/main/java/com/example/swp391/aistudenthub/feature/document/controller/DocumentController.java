@@ -127,6 +127,15 @@ public class DocumentController {
         return ResponseEntity.ok(ApiResponse.success(updated, "Cập nhật tài liệu thành công"));
     }
 
+    @PutMapping("/{id}/content")
+    public ResponseEntity<ApiResponse<DocumentResponse>> updateDocumentContent(
+            @PathVariable UUID id,
+            @jakarta.validation.Valid @RequestBody com.example.swp391.aistudenthub.feature.document.dto.request.DocumentContentUpdateRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        DocumentResponse updated = documentService.updateDocumentContent(id, request, currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.success(updated, "Cập nhật nội dung tài liệu thành công"));
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<DocumentResponse>>> searchAndFilterDocuments(
             @RequestParam(required = false) String keyword,
