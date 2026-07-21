@@ -201,10 +201,13 @@ public class DocumentController {
         return ResponseEntity.ok(ApiResponse.success(config));
     }
 
-    @PostMapping("/{id}/onlyoffice-callback")
+    @RequestMapping(value = "/{id}/onlyoffice-callback", method = {org.springframework.web.bind.annotation.RequestMethod.POST, org.springframework.web.bind.annotation.RequestMethod.GET})
     public ResponseEntity<java.util.Map<String, Object>> handleOnlyOfficeCallback(
             @PathVariable UUID id,
-            @RequestBody com.example.swp391.aistudenthub.feature.document.dto.request.OnlyOfficeCallbackRequest callback) {
+            @RequestBody(required = false) com.example.swp391.aistudenthub.feature.document.dto.request.OnlyOfficeCallbackRequest callback) {
+        if (callback == null) {
+            callback = new com.example.swp391.aistudenthub.feature.document.dto.request.OnlyOfficeCallbackRequest();
+        }
         java.util.Map<String, Object> response = documentService.handleOnlyOfficeCallback(id, callback);
         return ResponseEntity.ok(response);
     }
