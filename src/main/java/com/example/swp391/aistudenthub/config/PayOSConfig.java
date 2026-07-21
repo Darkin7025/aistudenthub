@@ -25,8 +25,11 @@ public class PayOSConfig {
         String cleanApiKey = apiKey != null ? apiKey.trim() : "";
         String cleanChecksumKey = checksumKey != null ? checksumKey.trim() : "";
 
-        log.info("Initializing PayOS client with clientId: {}...", 
-                (cleanClientId.length() > 5) ? cleanClientId.substring(0, 5) + "***" : "EMPTY");
+        log.info("PayOS Bean Init -> ClientId: [{}] (len={}), ApiKey: [{}] (len={}), ChecksumKey: [{}] (len={})",
+                cleanClientId.length() > 5 ? cleanClientId.substring(0, 5) + "***" : cleanClientId, cleanClientId.length(),
+                cleanApiKey.length() > 5 ? cleanApiKey.substring(0, 5) + "***" : cleanApiKey, cleanApiKey.length(),
+                cleanChecksumKey.length() > 5 ? cleanChecksumKey.substring(0, 5) + "***" : cleanChecksumKey, cleanChecksumKey.length());
+
         return new PayOS(cleanClientId, cleanApiKey, cleanChecksumKey);
     }
 }
