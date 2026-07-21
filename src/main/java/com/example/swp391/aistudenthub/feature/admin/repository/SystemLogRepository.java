@@ -21,12 +21,12 @@ public interface SystemLogRepository extends JpaRepository<SystemLog, UUID> {
     Page<SystemLog> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     @Query("SELECT s FROM SystemLog s WHERE " +
-            "(:level IS NULL OR s.level = :level) AND " +
-            "(:action IS NULL OR LOWER(CAST(s.action AS string)) LIKE LOWER(CONCAT('%', CAST(:action AS string), '%'))) AND " +
-            "(:actorUserId IS NULL OR s.actorUserId = :actorUserId) AND " +
-            "(:source IS NULL OR LOWER(CAST(s.source AS string)) LIKE LOWER(CONCAT('%', CAST(:source AS string), '%'))) AND " +
-            "(:from IS NULL OR s.createdAt >= :from) AND " +
-            "(:to IS NULL OR s.createdAt <= :to) " +
+            "(CAST(:level AS string) IS NULL OR s.level = :level) AND " +
+            "(CAST(:action AS string) IS NULL OR LOWER(s.action) LIKE LOWER(CONCAT('%', :action, '%'))) AND " +
+            "(CAST(:actorUserId AS string) IS NULL OR s.actorUserId = :actorUserId) AND " +
+            "(CAST(:source AS string) IS NULL OR LOWER(s.source) LIKE LOWER(CONCAT('%', :source, '%'))) AND " +
+            "(CAST(:from AS string) IS NULL OR s.createdAt >= :from) AND " +
+            "(CAST(:to AS string) IS NULL OR s.createdAt <= :to) " +
             "ORDER BY s.createdAt DESC")
     Page<SystemLog> searchLogs(@Param("level") LogLevel level,
                                @Param("action") String action,

@@ -84,8 +84,15 @@ public class SystemLogServiceImpl implements SystemLogService {
                                                    String source, OffsetDateTime from, OffsetDateTime to,
                                                    int page, int size) {
         Pageable pageable = PageRequest.of(page - 1, size);
-        Page<SystemLog> logs = systemLogRepository.searchLogs(level, normalize(action), actorUserId,
-                normalize(source), from, to, pageable);
+        String normAction = normalize(action);
+        String normSource = normalize(source);
+
+        Page<SystemLog> logs;
+        if (level == null && normAction == null && actorUserId == null && normSource == null && from == null && to == null) {
+            logs = systemLogRepository.findAllByOrderByCreatedAtDesc(pageable);
+        } else {
+            logs = systemLogRepository.searchLogs(level, normAction, actorUserId, normSource, from, to, pageable);
+        }
 
         List<SystemLogResponse> content = logs.getContent().stream()
                 .map(this::mapToResponse)
