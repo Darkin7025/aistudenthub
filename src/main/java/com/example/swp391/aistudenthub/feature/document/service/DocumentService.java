@@ -569,7 +569,11 @@ public class DocumentService {
                 }
 
                 String fileName = doc.getOriginalFileName() != null ? doc.getOriginalFileName() : doc.getFileName();
-                headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"");
+                org.springframework.http.ContentDisposition contentDisposition = org.springframework.http.ContentDisposition
+                        .builder("inline")
+                        .filename(fileName, StandardCharsets.UTF_8)
+                        .build();
+                headers.setContentDisposition(contentDisposition);
                 headers.setCacheControl("max-age=3600");
 
                 log.info("Streamed document {} to user {}", documentId, currentUser.getId());
@@ -675,6 +679,13 @@ public class DocumentService {
         String token = onlyOfficeConfig.createToken(payload);
 
         String apiJsUrl = onlyOfficeConfig.getDocserviceUrl();
+        if (apiJsUrl == null) {
+            apiJsUrl = "http://localhost:8000";
+        }
+        apiJsUrl = apiJsUrl.trim();
+        if (apiJsUrl.contains("/web-apps/")) {
+            apiJsUrl = apiJsUrl.substring(0, apiJsUrl.indexOf("/web-apps/"));
+        }
         if (!apiJsUrl.endsWith("/")) {
             apiJsUrl += "/";
         }
