@@ -37,6 +37,7 @@ public class SecurityConfig {
             "/api/v1/auth/**",
             "/api/v1/documents/public",
             "/api/v1/documents/public/filter-options",
+            "/api/v1/documents/*/onlyoffice-callback",
             "/api/v1/payment/payos-webhook",
             "/v3/api-docs/**",
             "/swagger-ui/**",

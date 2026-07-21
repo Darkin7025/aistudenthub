@@ -191,4 +191,21 @@ public class DocumentController {
             @AuthenticationPrincipal User currentUser) {
         return documentService.streamDocument(id, currentUser);
     }
+
+    @GetMapping("/{id}/onlyoffice-config")
+    public ResponseEntity<ApiResponse<com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse>> getOnlyOfficeConfig(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User currentUser) {
+        com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse config = documentService
+                .getOnlyOfficeConfig(id, currentUser);
+        return ResponseEntity.ok(ApiResponse.success(config));
+    }
+
+    @PostMapping("/{id}/onlyoffice-callback")
+    public ResponseEntity<java.util.Map<String, Object>> handleOnlyOfficeCallback(
+            @PathVariable UUID id,
+            @RequestBody com.example.swp391.aistudenthub.feature.document.dto.request.OnlyOfficeCallbackRequest callback) {
+        java.util.Map<String, Object> response = documentService.handleOnlyOfficeCallback(id, callback);
+        return ResponseEntity.ok(response);
+    }
 }
