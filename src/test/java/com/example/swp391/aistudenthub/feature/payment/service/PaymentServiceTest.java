@@ -9,14 +9,16 @@ import com.example.swp391.aistudenthub.feature.payment.repository.PaymentOrderRe
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import vn.payos.PayOS;
-import vn.payos.type.CheckoutResponseData;
-import vn.payos.type.PaymentData;
-import vn.payos.type.Webhook;
-import vn.payos.type.WebhookData;
+import vn.payos.model.v2.paymentRequests.CreatePaymentLinkRequest;
+import vn.payos.model.v2.paymentRequests.CreatePaymentLinkResponse;
+import vn.payos.model.v2.paymentRequests.PaymentLinkStatus;
+import vn.payos.model.webhooks.Webhook;
+import vn.payos.model.webhooks.WebhookData;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -28,7 +30,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
 
-    @Mock
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private PayOS payOS;
 
     @Mock
@@ -53,21 +55,21 @@ class PaymentServiceTest {
                 .description("Nạp tiền tài khoản AI Hub")
                 .build();
 
-        CheckoutResponseData checkoutData = CheckoutResponseData.builder()
+        CreatePaymentLinkResponse checkoutData = CreatePaymentLinkResponse.builder()
                 .bin("970415")
                 .accountNumber("123456789")
                 .accountName("ACCOUNT TEST")
-                .amount(50000)
+                .amount(50000L)
                 .description("Nạp tiền tài khoản AI Hub")
                 .orderCode(orderCode)
                 .currency("VND")
                 .paymentLinkId("link-123")
-                .status("PENDING")
+                .status(PaymentLinkStatus.PENDING)
                 .checkoutUrl("https://pay.payos.vn/web/123456789")
                 .qrCode("000201010212...")
                 .build();
 
-        when(payOS.createPaymentLink(any(PaymentData.class))).thenReturn(checkoutData);
+        when(payOS.paymentRequests().create(any(CreatePaymentLinkRequest.class))).thenReturn(checkoutData);
         when(paymentOrderRepository.save(any(PaymentOrder.class))).thenAnswer(i -> i.getArgument(0));
 
         PaymentResponse response = paymentService.createPaymentLink(request, userId);
@@ -93,7 +95,7 @@ class PaymentServiceTest {
 
         WebhookData webhookData = WebhookData.builder()
                 .orderCode(orderCode)
-                .amount(50000)
+                .amount(50000L)
                 .description("Thanh toan")
                 .accountNumber("123456789")
                 .reference("FT12345678")
@@ -112,7 +114,7 @@ class PaymentServiceTest {
                 .data(webhookData)
                 .build();
 
-        when(payOS.verifyPaymentWebhookData(webhook)).thenReturn(webhookData);
+        when(payOS.webhooks().verify(webhook)).thenReturn(webhookData);
         when(paymentOrderRepository.findByOrderCode(orderCode)).thenReturn(Optional.of(order));
         when(paymentOrderRepository.save(any(PaymentOrder.class))).thenAnswer(i -> i.getArgument(0));
 
