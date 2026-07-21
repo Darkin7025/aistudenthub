@@ -78,6 +78,46 @@ public class CloudinaryService {
         }
     }
 
+    public Map<String, String> uploadBytes(byte[] bytes, String fileName, String contentType) {
+        java.io.File tempFile = null;
+        try {
+            tempFile = java.io.File.createTempFile("upload_", "_" + fileName);
+            java.nio.file.Files.write(tempFile.toPath(), bytes);
+
+            String resourceType = "auto";
+            if ("application/pdf".equals(contentType) || (fileName != null && fileName.toLowerCase().endsWith(".pdf"))) {
+                resourceType = "image";
+            }
+
+            Map<?, ?> result = cloudinary.uploader().upload(
+                    tempFile,
+                    ObjectUtils.asMap(
+                            "resource_type", resourceType,
+                            "folder", "documents",
+                            "use_filename", true,
+                            "unique_filename", true,
+                            "access_mode", "public"
+                    ));
+
+            String url = (String) result.get("secure_url");
+            String publicId = (String) result.get("public_id");
+            String actualResourceType = (String) result.get("resource_type");
+
+            return Map.of(
+                    "url", url,
+                    "public_id", publicId,
+                    "resource_type", actualResourceType != null ? actualResourceType : "auto"
+            );
+        } catch (IOException e) {
+            log.error("Cloudinary uploadBytes failed (IOException) — file={}: {}", fileName, e.getMessage(), e);
+            throw new AppException(ErrorCode.UPLOAD_FAILED);
+        } finally {
+            if (tempFile != null && tempFile.exists()) {
+                tempFile.delete();
+            }
+        }
+    }
+
     public void delete(String publicId, String resourceType) {
         try {
             cloudinary.uploader().destroy(
