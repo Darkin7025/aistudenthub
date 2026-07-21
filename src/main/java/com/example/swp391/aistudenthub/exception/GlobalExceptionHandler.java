@@ -56,6 +56,17 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ErrorCode.VALIDATION_ERROR.getMessage()));
     }
 
+    @ExceptionHandler(java.io.IOException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIOException(java.io.IOException ex) {
+        String msg = ex.getMessage();
+        if (msg != null && (msg.contains("Broken pipe") || msg.contains("Connection reset") || msg.contains("connection reset"))) {
+            log.debug("Client disconnected while streaming response: {}", msg);
+            return null; // Client connection closed, no response can be delivered
+        }
+        log.error("IOException: {}", msg, ex);
+        return ResponseEntity.internalServerError().body(ApiResponse.error(ErrorCode.INTERNAL_ERROR.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneral(Exception ex, HttpServletRequest request) {
         log.error("[500] Unhandled exception: {}", ex.getMessage(), ex);
