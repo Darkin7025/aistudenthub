@@ -22,9 +22,9 @@ public interface SystemLogRepository extends JpaRepository<SystemLog, UUID> {
 
     @Query("SELECT s FROM SystemLog s WHERE " +
             "(:level IS NULL OR s.level = :level) AND " +
-            "(:action IS NULL OR LOWER(s.action) LIKE LOWER(CONCAT('%', :action, '%'))) AND " +
+            "(:action IS NULL OR LOWER(CAST(s.action AS string)) LIKE LOWER(CONCAT('%', CAST(:action AS string), '%'))) AND " +
             "(:actorUserId IS NULL OR s.actorUserId = :actorUserId) AND " +
-            "(:source IS NULL OR LOWER(s.source) LIKE LOWER(CONCAT('%', :source, '%'))) AND " +
+            "(:source IS NULL OR LOWER(CAST(s.source AS string)) LIKE LOWER(CONCAT('%', CAST(:source AS string), '%'))) AND " +
             "(:from IS NULL OR s.createdAt >= :from) AND " +
             "(:to IS NULL OR s.createdAt <= :to) " +
             "ORDER BY s.createdAt DESC")

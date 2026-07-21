@@ -25,8 +25,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     /** Tìm kiếm user theo email hoặc fullName (không phân biệt hoa thường). */
     @Query("SELECT u FROM User u WHERE " +
-           "(:keyword IS NULL OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+           "(:keyword IS NULL OR LOWER(CAST(u.email AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
+           "OR LOWER(CAST(u.fullName AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))) " +
            "ORDER BY u.createdAt DESC")
     Page<User> searchUsers(@Param("keyword") String keyword, Pageable pageable);
 
