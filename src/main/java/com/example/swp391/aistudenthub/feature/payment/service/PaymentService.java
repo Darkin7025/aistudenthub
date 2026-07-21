@@ -47,6 +47,11 @@ public class PaymentService {
         String cancelUrl = StringUtils.hasText(request.getCancelUrl()) ? request.getCancelUrl()
                 : (StringUtils.hasText(defaultCancelUrl) ? defaultCancelUrl : "http://localhost:5173/payment/cancel");
 
+        String description = request.getDescription();
+        if (StringUtils.hasText(description) && description.length() > 25) {
+            description = description.substring(0, 25);
+        }
+
         ItemData item = ItemData.builder()
                 .name("AI Student Hub Service")
                 .quantity(1)
@@ -56,7 +61,7 @@ public class PaymentService {
         PaymentData paymentData = PaymentData.builder()
                 .orderCode(orderCode)
                 .amount(request.getAmount())
-                .description(request.getDescription())
+                .description(description)
                 .returnUrl(returnUrl)
                 .cancelUrl(cancelUrl)
                 .item(item)
@@ -75,8 +80,7 @@ public class PaymentService {
             }
         } catch (Exception e) {
             log.error("Failed to create PayOS payment link for orderCode {}: {}", orderCode, e.getMessage(), e);
-            // Fallback: If PayOS credentials are not set yet, set checkoutUrl to mock preview
-            checkoutUrl = "https://pay.payos.vn/web/" + orderCode;
+            throw new AppException(ErrorCode.INTERNAL_ERROR, "Lỗi tạo link thanh toán PayOS: " + e.getMessage());
         }
 
         PaymentOrder paymentOrder = PaymentOrder.builder()
