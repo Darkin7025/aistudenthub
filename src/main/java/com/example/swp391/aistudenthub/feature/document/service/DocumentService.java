@@ -60,7 +60,7 @@ public class DocumentService {
     private final SystemConfigRepository systemConfigRepository;
     private final com.example.swp391.aistudenthub.config.OnlyOfficeConfig onlyOfficeConfig;
 
-    @Value("${app.base-url:http://localhost:8080}")
+    @Value("${app.backend-url:${app.base-url:http://localhost:8080}}")
     private String appBaseUrl;
 
     @Transactional

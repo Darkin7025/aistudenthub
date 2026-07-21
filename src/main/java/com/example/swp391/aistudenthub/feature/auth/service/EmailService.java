@@ -26,7 +26,7 @@ public class EmailService {
     @Value("${brevo.from-name:AI Study Hub}")
     private String fromName;
 
-    @Value("${app.base-url:http://localhost:5173}")
+    @Value("${app.frontend-url:${app.base-url:http://localhost:5173}}")
     private String baseUrl;
 
     public EmailService() {
