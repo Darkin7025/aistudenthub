@@ -19,9 +19,9 @@ public interface ChatSessionRepository extends JpaRepository<ChatSession, UUID> 
     org.springframework.data.domain.Page<ChatSession> findAllByOrderByUpdatedAtDesc(org.springframework.data.domain.Pageable pageable);
 
     @org.springframework.data.jpa.repository.Query("SELECT c FROM ChatSession c, User u WHERE c.userId = u.id AND " +
-           "(:keyword IS NULL OR LOWER(c.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+           "(:keyword IS NULL OR LOWER(CAST(c.title AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
+           "OR LOWER(CAST(u.email AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
+           "OR LOWER(CAST(u.fullName AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))) " +
            "ORDER BY c.updatedAt DESC")
     org.springframework.data.domain.Page<ChatSession> searchSessions(@org.springframework.data.repository.query.Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
 }

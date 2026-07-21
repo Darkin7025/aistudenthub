@@ -19,7 +19,7 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
     @org.springframework.data.jpa.repository.Query("SELECT d FROM Document d WHERE d.deletedAt IS NULL AND " +
             "d.userId = :userId AND " +
             "(:visibility IS NULL OR d.visibility = :visibility) AND " +
-            "(:keyword IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(d.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+            "(:keyword IS NULL OR LOWER(CAST(d.title AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR LOWER(CAST(d.description AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))) AND " +
             "(:subject IS NULL OR d.subject = :subject) AND " +
             "(:major IS NULL OR d.major = :major) AND " +
             "(:folderId IS NULL OR d.folderId = :folderId)")
@@ -40,7 +40,7 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     @org.springframework.data.jpa.repository.Query("SELECT d FROM Document d WHERE d.deletedAt IS NULL " +
             "AND d.visibility = com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC AND " +
-            "(:keyword IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(d.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+            "(:keyword IS NULL OR LOWER(CAST(d.title AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR LOWER(CAST(d.description AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))) AND " +
             "(:subject IS NULL OR d.subject = :subject) AND " +
             "(:major IS NULL OR d.major = :major)")
     org.springframework.data.domain.Page<Document> searchPublicDocuments(
@@ -61,7 +61,7 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
      */
     @org.springframework.data.jpa.repository.Query("SELECT d FROM Document d WHERE d.deletedAt IS NULL " +
             "AND d.visibility = com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC AND " +
-            "(:keyword IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(d.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+            "(:keyword IS NULL OR LOWER(CAST(d.title AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR LOWER(CAST(d.description AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))) AND " +
             "(:subject IS NULL OR d.subject = :subject) AND " +
             "(:major IS NULL OR d.major = :major)")
     org.springframework.data.domain.Page<Document> searchAndFilterPublic(
@@ -106,7 +106,7 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
      */
     @org.springframework.data.jpa.repository.Query("SELECT d FROM Document d WHERE d.deletedAt IS NULL AND " +
             "(:userId IS NULL OR d.userId = :userId) AND " +
-            "(:keyword IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(d.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+            "(:keyword IS NULL OR LOWER(CAST(d.title AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR LOWER(CAST(d.description AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))) AND " +
             "(:subject IS NULL OR d.subject = :subject) AND " +
             "(:major IS NULL OR d.major = :major) AND " +
             "(:visibility IS NULL OR d.visibility = :visibility)")
