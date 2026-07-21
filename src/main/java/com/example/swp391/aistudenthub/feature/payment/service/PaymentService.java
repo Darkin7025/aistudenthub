@@ -14,11 +14,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import vn.payos.PayOS;
-import vn.payos.type.CheckoutResponseData;
-import vn.payos.type.ItemData;
-import vn.payos.type.PaymentData;
-import vn.payos.type.Webhook;
-import vn.payos.type.WebhookData;
+import vn.payos.model.v2.paymentRequests.CreatePaymentLinkRequest;
+import vn.payos.model.v2.paymentRequests.CreatePaymentLinkResponse;
+import vn.payos.model.v2.paymentRequests.PaymentLinkItem;
+import vn.payos.model.webhooks.Webhook;
+import vn.payos.model.webhooks.WebhookData;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -52,15 +52,15 @@ public class PaymentService {
             description = description.substring(0, 25);
         }
 
-        ItemData item = ItemData.builder()
+        PaymentLinkItem item = PaymentLinkItem.builder()
                 .name("AI Student Hub Service")
                 .quantity(1)
-                .price(request.getAmount())
+                .price((long) request.getAmount())
                 .build();
 
-        PaymentData paymentData = PaymentData.builder()
+        CreatePaymentLinkRequest paymentData = CreatePaymentLinkRequest.builder()
                 .orderCode(orderCode)
-                .amount(request.getAmount())
+                .amount((long) request.getAmount())
                 .description(description)
                 .returnUrl(returnUrl)
                 .cancelUrl(cancelUrl)
@@ -72,7 +72,7 @@ public class PaymentService {
         String paymentLinkId = null;
 
         try {
-            CheckoutResponseData checkoutData = payOS.createPaymentLink(paymentData);
+            CreatePaymentLinkResponse checkoutData = payOS.paymentRequests().create(paymentData);
             if (checkoutData != null) {
                 checkoutUrl = checkoutData.getCheckoutUrl();
                 qrCode = checkoutData.getQrCode();
@@ -108,7 +108,7 @@ public class PaymentService {
 
         WebhookData verifiedData;
         try {
-            verifiedData = payOS.verifyPaymentWebhookData(webhook);
+            verifiedData = payOS.webhooks().verify(webhook);
         } catch (Exception e) {
             log.warn("PayOS webhook verification failed: {}", e.getMessage());
             // Process payload directly if verification environment bypass is needed
@@ -180,7 +180,7 @@ public class PaymentService {
 
         try {
             if (order.getOrderCode() != null) {
-                payOS.cancelPaymentLink(order.getOrderCode(), "User cancelled payment");
+                payOS.paymentRequests().cancel(order.getOrderCode(), "User cancelled payment");
             }
         } catch (Exception e) {
             log.warn("Failed to call PayOS cancelPaymentLink for orderCode {}: {}", orderCode, e.getMessage());
