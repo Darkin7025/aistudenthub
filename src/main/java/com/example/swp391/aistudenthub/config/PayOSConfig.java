@@ -21,8 +21,12 @@ public class PayOSConfig {
 
     @Bean
     public PayOS payOS() {
+        String cleanClientId = clientId != null ? clientId.trim() : "";
+        String cleanApiKey = apiKey != null ? apiKey.trim() : "";
+        String cleanChecksumKey = checksumKey != null ? checksumKey.trim() : "";
+
         log.info("Initializing PayOS client with clientId: {}...", 
-                (clientId != null && clientId.length() > 5) ? clientId.substring(0, 5) + "***" : "EMPTY");
-        return new PayOS(clientId, apiKey, checksumKey);
+                (cleanClientId.length() > 5) ? cleanClientId.substring(0, 5) + "***" : "EMPTY");
+        return new PayOS(cleanClientId, cleanApiKey, cleanChecksumKey);
     }
 }
