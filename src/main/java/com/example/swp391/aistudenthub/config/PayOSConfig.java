@@ -6,29 +6,31 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import vn.payos.PayOS;
 
+import org.springframework.util.StringUtils;
+
 @Slf4j
 @Configuration
 public class PayOSConfig {
 
-    @Value("${PAYOS_CLIENT_ID:${payos.client-id:}}")
+    @Value("${payos.client-id:}")
     private String clientId;
 
-    @Value("${PAYOS_API_KEY:${payos.api-key:}}")
+    @Value("${payos.api-key:}")
     private String apiKey;
 
-    @Value("${PAYOS_CHECKSUM_KEY:${payos.checksum-key:}}")
+    @Value("${payos.checksum-key:}")
     private String checksumKey;
 
     @Bean
     public PayOS payOS() {
-        String cleanClientId = clientId != null ? clientId.trim() : "";
-        String cleanApiKey = apiKey != null ? apiKey.trim() : "";
-        String cleanChecksumKey = checksumKey != null ? checksumKey.trim() : "";
+        String cleanClientId = StringUtils.hasText(clientId) ? clientId.trim() : "";
+        String cleanApiKey = StringUtils.hasText(apiKey) ? apiKey.trim() : "";
+        String cleanChecksumKey = StringUtils.hasText(checksumKey) ? checksumKey.trim() : "";
 
-        log.info("PayOS Bean Init -> ClientId: [{}] (len={}), ApiKey: [{}] (len={}), ChecksumKey: [{}] (len={})",
-                cleanClientId.length() > 5 ? cleanClientId.substring(0, 5) + "***" : cleanClientId, cleanClientId.length(),
-                cleanApiKey.length() > 5 ? cleanApiKey.substring(0, 5) + "***" : cleanApiKey, cleanApiKey.length(),
-                cleanChecksumKey.length() > 5 ? cleanChecksumKey.substring(0, 5) + "***" : cleanChecksumKey, cleanChecksumKey.length());
+        log.info("PayOS Client Loaded -> ClientId: [{}], ApiKey len={}, ChecksumKey len={}",
+                cleanClientId.length() > 5 ? cleanClientId.substring(0, 5) + "***" : cleanClientId,
+                cleanApiKey.length(),
+                cleanChecksumKey.length());
 
         return new PayOS(cleanClientId, cleanApiKey, cleanChecksumKey);
     }

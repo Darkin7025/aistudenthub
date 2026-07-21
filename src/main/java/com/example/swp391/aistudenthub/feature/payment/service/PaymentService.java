@@ -40,7 +40,7 @@ public class PaymentService {
 
     @Transactional
     public PaymentResponse createPaymentLink(CreatePaymentRequest request, UUID userId) {
-        long orderCode = System.currentTimeMillis();
+        long orderCode = System.currentTimeMillis() / 1000;
 
         String returnUrl = StringUtils.hasText(request.getReturnUrl()) ? request.getReturnUrl()
                 : (StringUtils.hasText(defaultReturnUrl) ? defaultReturnUrl : "http://localhost:5173/payment/success");
