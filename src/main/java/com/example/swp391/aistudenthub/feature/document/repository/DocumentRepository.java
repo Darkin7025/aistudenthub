@@ -103,18 +103,29 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     /**
      * Tìm kiếm và lọc tất cả tài liệu trong toàn hệ thống dành cho Admin.
+     * Hỗ trợ lọc nâng cao, tìm kiếm theo tiêu đề/mô tả/email hoặc tên uploader,
+     * và tự động sắp xếp mới nhất lên đầu.
      */
-    @org.springframework.data.jpa.repository.Query("SELECT d FROM Document d WHERE d.deletedAt IS NULL AND " +
+    @org.springframework.data.jpa.repository.Query("SELECT d FROM Document d WHERE " +
+            "(:includeDeleted = true OR d.deletedAt IS NULL) AND " +
             "(:userId IS NULL OR d.userId = :userId) AND " +
-            "(:keyword IS NULL OR LOWER(CAST(d.title AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR LOWER(CAST(d.description AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))) AND " +
+            "(:keyword IS NULL OR LOWER(CAST(d.title AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
+            "OR LOWER(CAST(d.description AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
+            "OR EXISTS (SELECT u FROM com.example.swp391.aistudenthub.feature.auth.entity.User u WHERE u.id = d.userId AND (LOWER(CAST(u.email AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR LOWER(CAST(u.fullName AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))))) AND " +
             "(:subject IS NULL OR d.subject = :subject) AND " +
             "(:major IS NULL OR d.major = :major) AND " +
-            "(:visibility IS NULL OR d.visibility = :visibility)")
+            "(:documentType IS NULL OR d.documentType = :documentType) AND " +
+            "(:uploadStatus IS NULL OR d.uploadStatus = :uploadStatus) AND " +
+            "(:visibility IS NULL OR d.visibility = :visibility) " +
+            "ORDER BY d.createdAt DESC")
     org.springframework.data.domain.Page<Document> searchAllDocumentsAdmin(
             @org.springframework.data.repository.query.Param("userId") UUID userId,
             @org.springframework.data.repository.query.Param("keyword") String keyword,
             @org.springframework.data.repository.query.Param("subject") String subject,
             @org.springframework.data.repository.query.Param("major") String major,
+            @org.springframework.data.repository.query.Param("documentType") String documentType,
+            @org.springframework.data.repository.query.Param("uploadStatus") com.example.swp391.aistudenthub.feature.document.enums.UploadStatus uploadStatus,
             @org.springframework.data.repository.query.Param("visibility") com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility visibility,
+            @org.springframework.data.repository.query.Param("includeDeleted") Boolean includeDeleted,
             org.springframework.data.domain.Pageable pageable);
 }
