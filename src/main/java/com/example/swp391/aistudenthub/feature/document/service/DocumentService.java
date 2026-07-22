@@ -133,6 +133,8 @@ public class DocumentService {
                 .folderId(request.getFolderId())
                 .customMetadata(request.getCustomMetadata())
                 .extractedText(extractedText)
+                .uploadStatus(com.example.swp391.aistudenthub.feature.document.enums.UploadStatus.COMPLETED)
+                .uploadProgress(100)
                 .build();
 
         Document saved = documentRepository.save(doc);

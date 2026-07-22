@@ -36,9 +36,12 @@ import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.UUID;
+import com.example.swp391.aistudenthub.feature.document.enums.UploadStatus;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.PageRequest;
 
 @Slf4j
 @Service
@@ -234,20 +237,31 @@ public class AdminServiceImpl implements AdminService {
             String keyword,
             String subject,
             String major,
+            String documentType,
+            UploadStatus uploadStatus,
             DocumentVisibility visibility,
+            Boolean includeDeleted,
             Pageable pageable) {
         if (keyword != null && keyword.trim().isEmpty()) keyword = null;
         if (subject != null && subject.trim().isEmpty()) subject = null;
         if (major != null && major.trim().isEmpty()) major = null;
+        if (documentType != null && documentType.trim().isEmpty()) documentType = null;
+        if (includeDeleted == null) includeDeleted = false;
 
-        return documentRepository.searchAllDocumentsAdmin(userId, keyword, subject, major, visibility, pageable)
+        // Nếu Pageable chưa có sắp xếp, mặc định sắp xếp theo createdAt DESC (mới nhất lên đầu)
+        if (pageable.getSort().isUnsorted()) {
+            pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.DESC, "createdAt"));
+        }
+
+        return documentRepository.searchAllDocumentsAdmin(
+                        userId, keyword, subject, major, documentType, uploadStatus, visibility, includeDeleted, pageable)
                 .map(this::toAdminDocumentResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public AdminDocumentResponse getDocumentById(UUID documentId) {
-        Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
+        Document doc = documentRepository.findById(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
         return toAdminDocumentResponse(doc);
     }

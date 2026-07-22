@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+import com.example.swp391.aistudenthub.feature.document.enums.UploadStatus;
+
 /**
  * Admin API — Quản lý tài liệu hệ thống.
  * Tất cả endpoint yêu cầu role ADMIN.
@@ -40,19 +42,23 @@ public class AdminDocumentController {
     @GetMapping
     @Operation(
         summary = "Xem danh sách tất cả tài liệu của mọi user",
-        description = "Hỗ trợ lọc theo userId, keyword, subject, major, visibility và phân trang."
+        description = "Hỗ trợ lọc theo userId, keyword (tiêu đề, mô tả, uploader email/name), subject, major, documentType, uploadStatus, visibility, includeDeleted và phân trang (mặc định mới nhất lên đầu)."
     )
     public ResponseEntity<ApiResponse<Page<AdminDocumentResponse>>> getAllDocuments(
             @RequestParam(required = false) UUID userId,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String subject,
             @RequestParam(required = false) String major,
+            @RequestParam(required = false) String documentType,
+            @RequestParam(required = false) UploadStatus uploadStatus,
             @RequestParam(required = false) DocumentVisibility visibility,
+            @RequestParam(required = false, defaultValue = "false") Boolean includeDeleted,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<AdminDocumentResponse> result = adminService.getAllDocuments(userId, keyword, subject, major, visibility, pageable);
+        Page<AdminDocumentResponse> result = adminService.getAllDocuments(
+                userId, keyword, subject, major, documentType, uploadStatus, visibility, includeDeleted, pageable);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
