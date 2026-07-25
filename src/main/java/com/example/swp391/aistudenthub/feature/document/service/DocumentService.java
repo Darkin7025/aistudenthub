@@ -59,6 +59,7 @@ public class DocumentService {
     private final OfficeTextExtractor officeTextExtractor;
     private final SystemConfigRepository systemConfigRepository;
     private final com.example.swp391.aistudenthub.config.OnlyOfficeConfig onlyOfficeConfig;
+    private final DocumentProcessor documentProcessor;
 
     @Value("${app.backend-url:${app.base-url:http://localhost:8080}}")
     private String appBaseUrl;
@@ -69,47 +70,6 @@ public class DocumentService {
         validateFile(file);
         validateCustomMetadata(request.getCustomMetadata());
         validateFolderOwnership(request.getFolderId(), userId);
-
-        String extractedText = null;
-        PreviewMode previewMode = previewResolver.resolveMode(file.getOriginalFilename(), file.getContentType());
-
-        try {
-            if (PreviewMode.TEXT.equals(previewMode)) {
-                extractedText = new String(file.getBytes(), StandardCharsets.UTF_8);
-                if (extractedText.trim().isEmpty()) {
-                    log.warn("Text file is empty: {}", file.getOriginalFilename());
-                    extractedText = null;
-                } else {
-                    log.info("Extracted {} chars from text file: {}", extractedText.length(),
-                            file.getOriginalFilename());
-                }
-            } else if (PreviewMode.PDF.equals(previewMode)) {
-                try (PDDocument pdDoc = Loader.loadPDF(file.getBytes())) {
-                    PDFTextStripper stripper = new PDFTextStripper();
-                    extractedText = stripper.getText(pdDoc);
-
-                    if (extractedText != null && !extractedText.trim().isEmpty()) {
-                        log.info("Extracted {} chars from {} pages PDF: {}",
-                                extractedText.length(), pdDoc.getNumberOfPages(), file.getOriginalFilename());
-                    } else {
-                        log.warn("PDF has no extractable text (might be scanned image): {}",
-                                file.getOriginalFilename());
-                        extractedText = null;
-                    }
-                }
-            } else if (PreviewMode.OFFICE.equals(previewMode)
-                    && previewResolver.isOfficeAiCapable(file.getOriginalFilename(), file.getContentType())) {
-                extractedText = officeTextExtractor.extract(
-                        file.getBytes(), file.getOriginalFilename(), file.getContentType());
-                if (extractedText != null) {
-                    log.info("Extracted {} chars from Office file: {}",
-                            extractedText.length(), file.getOriginalFilename());
-                }
-            }
-        } catch (Exception e) {
-            log.error("Failed to extract text from file {}. Error: {}", file.getOriginalFilename(), e.getMessage(), e);
-            extractedText = null;
-        }
 
         Map<String, String> uploadResult = cloudinaryService.upload(file);
 
@@ -132,13 +92,17 @@ public class DocumentService {
                 .documentType(request.getDocumentType())
                 .folderId(request.getFolderId())
                 .customMetadata(request.getCustomMetadata())
-                .extractedText(extractedText)
-                .uploadStatus(com.example.swp391.aistudenthub.feature.document.enums.UploadStatus.COMPLETED)
-                .uploadProgress(100)
+                .extractedText(null)
+                .uploadStatus(com.example.swp391.aistudenthub.feature.document.enums.UploadStatus.PROCESSING)
+                .uploadProgress(10)
                 .build();
 
         Document saved = documentRepository.save(doc);
-        log.info("Document saved: id={}, user={}", saved.getId(), userId);
+        log.info("Document saved (PROCESSING): id={}, user={}", saved.getId(), userId);
+
+        // Kích hoạt trích xuất văn bản ngầm bất đồng bộ
+        documentProcessor.processDocumentText(saved.getId());
+
         return documentMapper.toResponse(saved);
     }
 
