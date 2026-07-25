@@ -595,9 +595,9 @@ public class DocumentService {
 
         String documentType = resolveOnlyOfficeDocumentType(fileExt);
 
-        long timestamp = doc.getUpdatedAt() != null ? doc.getUpdatedAt().toEpochSecond()
-                : (doc.getCreatedAt() != null ? doc.getCreatedAt().toEpochSecond() : System.currentTimeMillis() / 1000);
-        String documentKey = doc.getId().toString().replace("-", "") + "_" + timestamp;
+        // Use current timestamp to force a fresh OnlyOffice session each time the editor is opened.
+        // This prevents the "backup copy" warning caused by stale session keys from previous editors.
+        String documentKey = doc.getId().toString().replace("-", "") + "_" + System.currentTimeMillis();
 
         String callbackUrl = appBaseUrl + "/api/v1/documents/" + doc.getId() + "/onlyoffice-callback";
 
