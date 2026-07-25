@@ -145,13 +145,34 @@ public class PaymentService {
         return "Webhook processed successfully";
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PaymentResponse getPaymentOrder(Long orderCode, UUID userId) {
         PaymentOrder order = paymentOrderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND, "Đơn hàng không tồn tại"));
 
         if (!order.getUserId().equals(userId)) {
             throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+
+        // Real-time status sync with PayOS if current status is PENDING
+        if (PaymentStatus.PENDING.equals(order.getStatus())) {
+            try {
+                var paymentLinkInformation = payOS.paymentRequests().get(orderCode);
+                if (paymentLinkInformation != null) {
+                    String payOsStatus = paymentLinkInformation.getStatus() != null ? paymentLinkInformation.getStatus().name() : "";
+                    log.info("Queried PayOS for orderCode {}: status={}", orderCode, payOsStatus);
+                    if ("PAID".equalsIgnoreCase(payOsStatus)) {
+                        order.setStatus(PaymentStatus.PAID);
+                        order.setPaidAt(OffsetDateTime.now());
+                        order = paymentOrderRepository.save(order);
+                    } else if ("CANCELLED".equalsIgnoreCase(payOsStatus)) {
+                        order.setStatus(PaymentStatus.CANCELLED);
+                        order = paymentOrderRepository.save(order);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to query PayOS payment info for orderCode {}: {}", orderCode, e.getMessage());
+            }
         }
 
         return toResponse(order);
