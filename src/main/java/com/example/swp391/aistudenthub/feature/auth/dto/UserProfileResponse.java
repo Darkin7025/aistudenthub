@@ -19,4 +19,5 @@ public class UserProfileResponse {
     private boolean emailVerified;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
+    private boolean isPremium;
 }
