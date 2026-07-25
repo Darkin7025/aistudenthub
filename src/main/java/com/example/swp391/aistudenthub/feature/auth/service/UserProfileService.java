@@ -8,6 +8,8 @@ import com.example.swp391.aistudenthub.feature.auth.dto.UpdateProfileRequest;
 import com.example.swp391.aistudenthub.feature.auth.dto.UserProfileResponse;
 import com.example.swp391.aistudenthub.feature.auth.entity.User;
 import com.example.swp391.aistudenthub.feature.auth.repository.UserRepository;
+import com.example.swp391.aistudenthub.feature.payment.repository.PaymentOrderRepository;
+import com.example.swp391.aistudenthub.feature.payment.enums.PaymentStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ public class UserProfileService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PaymentOrderRepository paymentOrderRepository;
 
     @Transactional(readOnly = true)
     public UserProfileResponse getProfile(UUID userId) {
@@ -95,6 +98,7 @@ public class UserProfileService {
     }
 
     private UserProfileResponse mapToResponse(User user) {
+        boolean isPremium = paymentOrderRepository.existsByUserIdAndStatus(user.getId(), PaymentStatus.PAID);
         return UserProfileResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
@@ -105,6 +109,7 @@ public class UserProfileService {
                 .emailVerified(user.isEmailVerified())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .isPremium(isPremium)
                 .build();
     }
 }
