@@ -16,6 +16,7 @@ public class OpenApiConfig {
     public OpenAPI customOpenAPI() {
         final String securitySchemeName = "bearerAuth";
         return new OpenAPI()
+                .addServersItem(new Server().url("/").description("Default Server URL"))
                 .info(new Info()
                         .title("AI Student Hub API")
                         .version("1.0")
