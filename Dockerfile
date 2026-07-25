@@ -18,4 +18,4 @@ COPY --from=builder /app/target/*.jar app.jar
 EXPOSE 8080
 
 # Run the application with optimized memory settings for 512MB RAM environment
-ENTRYPOINT ["java", "-Xms128m", "-Xmx256m", "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=128m", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Xms64m", "-Xmx192m", "-Xss256k", "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=96m", "-XX:CompressedClassSpaceSize=32m", "-jar", "app.jar"]
