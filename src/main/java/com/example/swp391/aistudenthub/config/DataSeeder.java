@@ -75,7 +75,16 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private User seedUser(String email, String password, String fullName, Role role) {
-        return userRepository.findByEmailAndDeletedAtIsNull(email)
+        return userRepository.findByEmail(email)
+                .map(existingUser -> {
+                    if (existingUser.getDeletedAt() != null) {
+                        existingUser.setDeletedAt(null);
+                        existingUser.setActive(true);
+                        log.info("Restored soft-deleted {} user: {}", role, email);
+                        return userRepository.save(existingUser);
+                    }
+                    return existingUser;
+                })
                 .orElseGet(() -> {
                     User user = User.builder()
                             .email(email)
