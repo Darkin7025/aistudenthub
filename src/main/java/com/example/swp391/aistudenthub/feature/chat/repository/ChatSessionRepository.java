@@ -18,7 +18,7 @@ public interface ChatSessionRepository extends JpaRepository<ChatSession, UUID> 
     /** Tổng số chat sessions (count() đã có sẵn từ JpaRepository). */
     org.springframework.data.domain.Page<ChatSession> findAllByOrderByUpdatedAtDesc(org.springframework.data.domain.Pageable pageable);
 
-    @org.springframework.data.jpa.repository.Query("SELECT c FROM ChatSession c, User u WHERE c.userId = u.id AND " +
+    @org.springframework.data.jpa.repository.Query("SELECT c FROM ChatSession c JOIN User u ON c.userId = u.id WHERE " +
            "(:keyword IS NULL OR LOWER(CAST(c.title AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
            "OR LOWER(CAST(u.email AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
            "OR LOWER(CAST(u.fullName AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))) " +

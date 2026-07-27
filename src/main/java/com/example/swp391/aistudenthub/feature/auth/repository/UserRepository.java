@@ -34,4 +34,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     /** Số user chưa bị xóa mềm. */
     long countByDeletedAtIsNull();
+
+    long countByActiveAndDeletedAtIsNull(boolean active);
 }

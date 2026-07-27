@@ -54,8 +54,9 @@ public class AuthController {
      * → Server trả 200, FE tự xóa token khỏi storage
      */
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<MessageResponse>> logout() {
-        return ResponseEntity.ok(ApiResponse.success(authService.logout()));
+    public ResponseEntity<ApiResponse<MessageResponse>> logout(@RequestBody(required = false) com.example.swp391.aistudenthub.feature.auth.dto.LogoutRequest request) {
+        String token = (request != null) ? request.getRefreshToken() : null;
+        return ResponseEntity.ok(ApiResponse.success(authService.logout(token)));
     }
 
     /**

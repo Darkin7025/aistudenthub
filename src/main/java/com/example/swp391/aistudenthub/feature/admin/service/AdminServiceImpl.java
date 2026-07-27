@@ -39,6 +39,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.UUID;
+import java.util.Map;
+import java.util.Objects;
+import java.util.HashMap;
+import java.util.stream.Collectors;
 import com.example.swp391.aistudenthub.feature.document.enums.UploadStatus;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.PageRequest;
@@ -119,9 +123,7 @@ public class AdminServiceImpl implements AdminService {
         long totalUsers     = userRepository.countByDeletedAtIsNull();
         long totalDocs      = documentRepository.countByDeletedAtIsNull();
         long totalSessions  = chatSessionRepository.count();
-        long disabledUsers  = userRepository.findAll().stream()
-                .filter(u -> !u.isActive() && u.getDeletedAt() == null)
-                .count();
+        long disabledUsers  = userRepository.countByActiveAndDeletedAtIsNull(false);
 
         return AdminDashboardStatsResponse.builder()
                 .totalUsers(totalUsers)
@@ -253,9 +255,23 @@ public class AdminServiceImpl implements AdminService {
             pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.DESC, "createdAt"));
         }
 
-        return documentRepository.searchAllDocumentsAdmin(
-                        userId, keyword, subject, major, documentType, uploadStatus, visibility, includeDeleted, pageable)
-                .map(this::toAdminDocumentResponse);
+        Page<Document> documents = documentRepository.searchAllDocumentsAdmin(
+                        userId, keyword, subject, major, documentType, uploadStatus, visibility, includeDeleted, pageable);
+
+        List<UUID> userIds = documents.getContent().stream()
+                .map(Document::getUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<UUID, User> usersMap = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            usersMap = userRepository.findAllById(userIds).stream()
+                    .collect(Collectors.toMap(User::getId, java.util.function.Function.identity()));
+        }
+
+        final Map<UUID, User> finalUsersMap = usersMap;
+        return documents.map(doc -> toAdminDocumentResponse(doc, finalUsersMap.get(doc.getUserId())));
     }
 
     @Override
@@ -294,16 +310,21 @@ public class AdminServiceImpl implements AdminService {
     // =========================================================
 
     private AdminDocumentResponse toAdminDocumentResponse(Document doc) {
+        User user = null;
+        if (doc != null && doc.getUserId() != null) {
+            user = userRepository.findById(doc.getUserId()).orElse(null);
+        }
+        return toAdminDocumentResponse(doc, user);
+    }
+
+    private AdminDocumentResponse toAdminDocumentResponse(Document doc, User user) {
         if (doc == null) return null;
 
         String uploaderEmail = null;
         String uploaderFullName = null;
-        if (doc.getUserId() != null) {
-            User user = userRepository.findById(doc.getUserId()).orElse(null);
-            if (user != null) {
-                uploaderEmail = user.getEmail();
-                uploaderFullName = user.getFullName();
-            }
+        if (user != null) {
+            uploaderEmail = user.getEmail();
+            uploaderFullName = user.getFullName();
         }
 
         PreviewMode previewMode = previewResolver.resolveMode(doc.getOriginalFileName(), doc.getFileType());

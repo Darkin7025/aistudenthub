@@ -26,6 +26,7 @@ public class DocumentController {
     private final DocumentService documentService;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final jakarta.validation.Validator validator;
+    private final com.example.swp391.aistudenthub.config.OnlyOfficeConfig onlyOfficeConfig;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<DocumentResponse>> upload(
@@ -204,7 +205,35 @@ public class DocumentController {
     @RequestMapping(value = "/{id}/onlyoffice-callback", method = {org.springframework.web.bind.annotation.RequestMethod.POST, org.springframework.web.bind.annotation.RequestMethod.GET})
     public ResponseEntity<java.util.Map<String, Object>> handleOnlyOfficeCallback(
             @PathVariable UUID id,
-            @RequestBody(required = false) com.example.swp391.aistudenthub.feature.document.dto.request.OnlyOfficeCallbackRequest callback) {
+            @RequestBody(required = false) com.example.swp391.aistudenthub.feature.document.dto.request.OnlyOfficeCallbackRequest callback,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+
+        if (onlyOfficeConfig.isEnabled() && org.springframework.util.StringUtils.hasText(onlyOfficeConfig.getDocserviceSecret())) {
+            String token = null;
+            String headerName = onlyOfficeConfig.getDocserviceHeader();
+            if (headerName == null || headerName.trim().isEmpty()) {
+                headerName = "Authorization";
+            }
+
+            String headerValue = httpRequest.getHeader(headerName);
+            if (org.springframework.util.StringUtils.hasText(headerValue)) {
+                if (headerValue.startsWith("Bearer ")) {
+                    token = headerValue.substring(7).trim();
+                } else {
+                    token = headerValue.trim();
+                }
+            }
+
+            if (!org.springframework.util.StringUtils.hasText(token) && callback != null) {
+                token = callback.getToken();
+            }
+
+            if (!org.springframework.util.StringUtils.hasText(token) || onlyOfficeConfig.verifyToken(token) == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(java.util.Map.of("error", 1, "message", "Invalid or missing ONLYOFFICE JWT token"));
+            }
+        }
+
         if (callback == null) {
             callback = new com.example.swp391.aistudenthub.feature.document.dto.request.OnlyOfficeCallbackRequest();
         }
