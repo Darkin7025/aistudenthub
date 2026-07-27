@@ -48,6 +48,7 @@ public class ChatServiceImpl implements ChatService {
     private final TransactionTemplate transactionTemplate;
     private final DocumentPreviewResolver previewResolver;
     private final SystemConfigRepository systemConfigRepository;
+    private final com.example.swp391.aistudenthub.feature.chat.repository.DocumentChunkRepository documentChunkRepository;
 
     @Override
     public ChatResponse chat(ChatRequest request, UUID userId) {
@@ -174,8 +175,11 @@ public class ChatServiceImpl implements ChatService {
             });
             return simulateStream(answer, sessionId, userId, documentId);
         }
-
-        String prompt = ragService.buildDocumentPrompt(document.getExtractedText(), question);
+        if (document.getExtractedText() == null) {
+            throw new AppException(ErrorCode.DOCUMENT_CONTENT_NOT_AVAILABLE);
+        }
+        String contextText = retrieveRelevantContext(documentId, question, document.getExtractedText());
+        String prompt = ragService.buildDocumentPrompt(contextText, question);
         return streamAnswer(prompt, session.getId(), userId, documentId);
     }
 
@@ -335,7 +339,11 @@ public class ChatServiceImpl implements ChatService {
         if (PreviewMode.IMAGE.equals(mode)) {
             return generateImageAnswerSafely(document.getFileUrl(), question);
         }
-        String prompt = ragService.buildDocumentPrompt(document.getExtractedText(), question);
+        if (document.getExtractedText() == null) {
+            throw new AppException(ErrorCode.DOCUMENT_CONTENT_NOT_AVAILABLE);
+        }
+        String contextText = retrieveRelevantContext(document.getId(), question, document.getExtractedText());
+        String prompt = ragService.buildDocumentPrompt(contextText, question);
         return generateAnswerSafely(prompt);
     }
 
@@ -416,5 +424,45 @@ public class ChatServiceImpl implements ChatService {
                         throw new AppException(ErrorCode.FEATURE_DISABLED);
                     }
                 });
+    }
+
+    private String retrieveRelevantContext(UUID documentId, String question, String fallbackText) {
+        try {
+            java.util.List<com.example.swp391.aistudenthub.feature.chat.entity.DocumentChunk> chunks = 
+                    documentChunkRepository.findByDocumentIdOrderByChunkIndexAsc(documentId);
+            if (chunks == null || chunks.isEmpty()) {
+                return fallbackText;
+            }
+            
+            // Simple keyword-matching relevance ranking
+            String[] keywords = question.toLowerCase().split("\\s+");
+            java.util.List<com.example.swp391.aistudenthub.feature.chat.entity.DocumentChunk> scored = new java.util.ArrayList<>(chunks);
+            scored.sort((c1, c2) -> {
+                long score1 = countMatches(c1.getContent().toLowerCase(), keywords);
+                long score2 = countMatches(c2.getContent().toLowerCase(), keywords);
+                return Long.compare(score2, score1); // Descending order of relevance
+            });
+            
+            // Collect the top 3 chunks (approx ~2400 words max)
+            StringBuilder sb = new StringBuilder();
+            int topCount = Math.min(3, scored.size());
+            for (int i = 0; i < topCount; i++) {
+                sb.append(scored.get(i).getContent()).append("\n\n");
+            }
+            return sb.toString().trim();
+        } catch (Exception e) {
+            log.error("Failed to retrieve relevant context from chunks for document: {}", documentId, e);
+            return fallbackText;
+        }
+    }
+
+    private long countMatches(String content, String[] keywords) {
+        long count = 0;
+        for (String kw : keywords) {
+            if (kw.length() > 2 && content.contains(kw)) {
+                count++;
+            }
+        }
+        return count;
     }
 }

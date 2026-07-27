@@ -8,6 +8,8 @@ import com.example.swp391.aistudenthub.feature.auth.dto.UserProfileResponse;
 import com.example.swp391.aistudenthub.feature.auth.entity.Role;
 import com.example.swp391.aistudenthub.feature.auth.entity.User;
 import com.example.swp391.aistudenthub.feature.auth.repository.UserRepository;
+import com.example.swp391.aistudenthub.feature.payment.repository.PaymentOrderRepository;
+import com.example.swp391.aistudenthub.feature.payment.enums.PaymentStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -35,6 +37,9 @@ class UserProfileServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private PaymentOrderRepository paymentOrderRepository;
+
     @InjectMocks
     private UserProfileService userProfileService;
 
@@ -59,6 +64,7 @@ class UserProfileServiceTest {
         when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
         when(userRepository.existsByEmailAndDeletedAtIsNull("new@example.com")).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(paymentOrderRepository.existsByUserIdAndStatus(any(UUID.class), any(PaymentStatus.class))).thenReturn(false);
 
         UserProfileResponse response = userProfileService.updateProfile(userId, request);
 

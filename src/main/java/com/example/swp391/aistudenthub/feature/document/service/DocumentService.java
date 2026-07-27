@@ -133,7 +133,13 @@ public class DocumentService {
                 throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
             }
         }
-        return documentMapper.toResponse(doc);
+        DocumentResponse response = documentMapper.toResponse(doc);
+        boolean isOwnerOrAdmin = currentUser != null && (doc.getUserId().equals(currentUser.getId())
+                || com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole()));
+        if (!isOwnerOrAdmin) {
+            response.setExtractedText(null);
+        }
+        return response;
     }
 
     @Transactional
@@ -282,14 +288,7 @@ public class DocumentService {
         Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
 
-        if (com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC
-                .equals(doc.getVisibility())) {
-            checkPublicDocumentsFeatureEnabled();
-        }
-
-        if (!canPreviewDocument(doc, currentUser)) {
-            throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
-        }
+        checkPreviewPermission(doc, currentUser);
 
         String fileName = StringUtils.hasText(doc.getOriginalFileName()) ? doc.getOriginalFileName()
                 : doc.getFileName();
@@ -448,6 +447,24 @@ public class DocumentService {
                 || com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole());
     }
 
+    private void checkPreviewPermission(
+            Document doc,
+            com.example.swp391.aistudenthub.feature.auth.entity.User currentUser) {
+        boolean isOwnerOrAdmin = doc.getUserId().equals(currentUser.getId())
+                || com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole());
+
+        if (isOwnerOrAdmin) {
+            return;
+        }
+
+        if (com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC
+                .equals(doc.getVisibility())) {
+            checkPublicDocumentsFeatureEnabled();
+        } else {
+            throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+    }
+
     /**
      * Determines the correct Cloudinary resource_type for signed URL generation.
      * Legacy PDFs were uploaded as "raw", new PDFs are uploaded as "image".
@@ -479,14 +496,7 @@ public class DocumentService {
         Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
 
-        if (com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC
-                .equals(doc.getVisibility())) {
-            checkPublicDocumentsFeatureEnabled();
-        }
-
-        if (!canPreviewDocument(doc, currentUser)) {
-            throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
-        }
+        checkPreviewPermission(doc, currentUser);
 
         try {
             String targetUrl = doc.getFileUrl();
@@ -559,7 +569,11 @@ public class DocumentService {
             org.springframework.data.domain.Pageable pageable) {
         checkPublicDocumentsFeatureEnabled();
         return documentRepository.searchAndFilterPublic(keyword, subject, major, pageable)
-                .map(documentMapper::toResponse);
+                .map(doc -> {
+                    DocumentResponse res = documentMapper.toResponse(doc);
+                    res.setExtractedText(null);
+                    return res;
+                });
     }
 
     @Transactional(readOnly = true)
@@ -580,9 +594,7 @@ public class DocumentService {
         Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
 
-        if (!canPreviewDocument(doc, currentUser)) {
-            throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
-        }
+        checkPreviewPermission(doc, currentUser);
 
         boolean canEdit = doc.getUserId().equals(currentUser.getId())
                 || com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole());

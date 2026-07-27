@@ -23,4 +23,5 @@ public class OnlyOfficeCallbackRequest {
     private String userdata;
     private Integer filetype;
     private String forcesavetype;
+    private String token;
 }

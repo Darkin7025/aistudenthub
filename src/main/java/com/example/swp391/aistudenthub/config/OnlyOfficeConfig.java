@@ -44,4 +44,26 @@ public class OnlyOfficeConfig {
                 .signWith(key)
                 .compact();
     }
+
+    public io.jsonwebtoken.Claims verifyToken(String token) {
+        if (docserviceSecret == null || docserviceSecret.trim().isEmpty() || token == null) {
+            return null;
+        }
+        try {
+            byte[] rawBytes = docserviceSecret.getBytes(StandardCharsets.UTF_8);
+            byte[] keyBytes = rawBytes;
+            if (rawBytes.length < 32) {
+                keyBytes = new byte[32];
+                System.arraycopy(rawBytes, 0, keyBytes, 0, rawBytes.length);
+            }
+            SecretKey key = Keys.hmacShaKeyFor(keyBytes);
+            return Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

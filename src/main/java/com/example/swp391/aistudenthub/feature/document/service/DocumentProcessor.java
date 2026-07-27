@@ -26,6 +26,8 @@ public class DocumentProcessor {
     private final DocumentRepository documentRepository;
     private final DocumentPreviewResolver previewResolver;
     private final OfficeTextExtractor officeTextExtractor;
+    private final com.example.swp391.aistudenthub.feature.chat.repository.DocumentChunkRepository documentChunkRepository;
+    private final com.example.swp391.aistudenthub.feature.chat.service.ChunkingService chunkingService;
 
     @Async("documentTaskExecutor")
     public void processDocumentText(UUID documentId) {
@@ -64,20 +66,50 @@ public class DocumentProcessor {
                 }
             }
 
-            if (extractedText != null && extractedText.trim().isEmpty()) {
-                extractedText = null;
+            if (extractedText != null) {
+                String trimmed = extractedText.trim();
+                if (trimmed.isEmpty()) {
+                    extractedText = null;
+                } else {
+                    int maxLength = 500 * 1024; // 500KB / 512,000 characters limit
+                    if (trimmed.length() > maxLength) {
+                        extractedText = trimmed.substring(0, maxLength) + "\n\n[Nội dung đã bị cắt vì quá dài]";
+                    } else {
+                        extractedText = trimmed;
+                    }
+                }
             }
 
-            document.setExtractedText(extractedText);
-            document.setUploadStatus(UploadStatus.COMPLETED);
-            document.setUploadProgress(100);
-            documentRepository.save(document);
+            documentRepository.updateExtractedTextAndStatus(documentId, extractedText, UploadStatus.COMPLETED, 100);
+            
+            // Perform chunking and save chunks to the database
+            if (extractedText != null) {
+                try {
+                    documentChunkRepository.deleteByDocumentId(documentId);
+                    java.util.List<com.example.swp391.aistudenthub.feature.chat.dto.TextChunk> textChunks = chunkingService.chunkText(extractedText);
+                    java.util.List<com.example.swp391.aistudenthub.feature.chat.entity.DocumentChunk> docChunks = new java.util.ArrayList<>();
+                    for (com.example.swp391.aistudenthub.feature.chat.dto.TextChunk tc : textChunks) {
+                        docChunks.add(com.example.swp391.aistudenthub.feature.chat.entity.DocumentChunk.builder()
+                                .documentId(documentId)
+                                .chunkIndex(tc.getChunkIndex())
+                                .content(tc.getContent())
+                                .tokenCount(tc.getTokenCount())
+                                .build());
+                    }
+                    if (!docChunks.isEmpty()) {
+                        documentChunkRepository.saveAll(docChunks);
+                        log.info("Saved {} chunks for document: {}", docChunks.size(), documentId);
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to chunk and save document chunks for document {}: {}", documentId, e.getMessage(), e);
+                }
+            }
+
             log.info("Background text extraction completed for document: {}, status: COMPLETED", documentId);
 
         } catch (Exception e) {
             log.error("Error during background text extraction for document {}: {}", documentId, e.getMessage(), e);
-            document.setUploadStatus(UploadStatus.FAILED);
-            documentRepository.save(document);
+            documentRepository.updateUploadStatus(documentId, UploadStatus.FAILED);
         }
     }
 

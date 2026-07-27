@@ -134,10 +134,13 @@ public class AuthService {
         String rawRefreshToken = UUID.randomUUID().toString();
         String hashedRefresh = sha256(rawRefreshToken);
 
+        // Invalidate all existing refresh tokens for this user
+        refreshTokenRepository.revokeAllByUserId(user.getId(), OffsetDateTime.now());
+
         RefreshToken refreshTokenEntity = RefreshToken.builder()
                 .userId(user.getId())
                 .tokenHash(hashedRefresh)
-                .expiresAt(OffsetDateTime.now().plusSeconds(refreshTokenExpiration / 1000))
+                .expiresAt(OffsetDateTime.now().plus(refreshTokenExpiration, java.time.temporal.ChronoUnit.MILLIS))
                 .build();
         refreshTokenRepository.save(refreshTokenEntity);
 
@@ -149,7 +152,15 @@ public class AuthService {
                 .build();
     }
 
-    public MessageResponse logout() {
+    @Transactional
+    public MessageResponse logout(String refreshToken) {
+        if (org.springframework.util.StringUtils.hasText(refreshToken)) {
+            String hash = sha256(refreshToken);
+            refreshTokenRepository.findByTokenHash(hash).ifPresent(token -> {
+                token.setRevokedAt(OffsetDateTime.now());
+                refreshTokenRepository.save(token);
+            });
+        }
         return new MessageResponse("Đăng xuất thành công.");
     }
 

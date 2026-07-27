@@ -116,8 +116,7 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
             "(:major IS NULL OR d.major = :major) AND " +
             "(:documentType IS NULL OR d.documentType = :documentType) AND " +
             "(:uploadStatus IS NULL OR d.uploadStatus = :uploadStatus) AND " +
-            "(:visibility IS NULL OR d.visibility = :visibility) " +
-            "ORDER BY d.createdAt DESC")
+            "(:visibility IS NULL OR d.visibility = :visibility)")
     org.springframework.data.domain.Page<Document> searchAllDocumentsAdmin(
             @org.springframework.data.repository.query.Param("userId") UUID userId,
             @org.springframework.data.repository.query.Param("keyword") String keyword,
@@ -128,4 +127,20 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
             @org.springframework.data.repository.query.Param("visibility") com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility visibility,
             @org.springframework.data.repository.query.Param("includeDeleted") Boolean includeDeleted,
             org.springframework.data.domain.Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query("UPDATE Document d SET d.extractedText = :extractedText, d.uploadStatus = :uploadStatus, d.uploadProgress = :uploadProgress WHERE d.id = :id")
+    void updateExtractedTextAndStatus(
+            @org.springframework.data.repository.query.Param("id") UUID id,
+            @org.springframework.data.repository.query.Param("extractedText") String extractedText,
+            @org.springframework.data.repository.query.Param("uploadStatus") com.example.swp391.aistudenthub.feature.document.enums.UploadStatus uploadStatus,
+            @org.springframework.data.repository.query.Param("uploadProgress") int uploadProgress);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query("UPDATE Document d SET d.uploadStatus = :uploadStatus WHERE d.id = :id")
+    void updateUploadStatus(
+            @org.springframework.data.repository.query.Param("id") UUID id,
+            @org.springframework.data.repository.query.Param("uploadStatus") com.example.swp391.aistudenthub.feature.document.enums.UploadStatus uploadStatus);
 }

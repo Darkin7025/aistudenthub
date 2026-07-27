@@ -39,6 +39,7 @@ public class FolderService {
         String name = request.getName().trim();
         
         if (folderRepository.existsByUserIdAndNameAndDeletedAtIsNull(userId, name)) {
+            throw new AppException(ErrorCode.FOLDER_ALREADY_EXISTS);
         }
 
         UUID parentId = request.getParentId();
@@ -86,6 +87,18 @@ public class FolderService {
             if (!parent.getUserId().equals(userId)) {
                 throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
             }
+            // Check for circular reference in the hierarchy: grandparent and deeper
+            UUID currentParentId = parentId;
+            while (currentParentId != null) {
+                if (currentParentId.equals(folder.getId())) {
+                    throw new AppException(ErrorCode.VALIDATION_ERROR, "Không thể thiết lập quan hệ thư mục vòng lặp");
+                }
+                Folder parentFolder = folderRepository.findByIdAndDeletedAtIsNull(currentParentId).orElse(null);
+                if (parentFolder == null) {
+                    break;
+                }
+                currentParentId = parentFolder.getParentId();
+            }
         }
         folder.setParentId(parentId);
 
@@ -105,7 +118,8 @@ public class FolderService {
         List<Folder> allFolders = folderRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
         List<Folder> foldersToDelete = new java.util.ArrayList<>();
         foldersToDelete.add(folder);
-        collectDescendantFolders(id, allFolders, foldersToDelete);
+        java.util.Set<UUID> visited = new java.util.HashSet<>();
+        collectDescendantFolders(id, allFolders, foldersToDelete, visited);
         
         java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
         List<UUID> folderIdsToDelete = foldersToDelete.stream().map(Folder::getId).toList();
@@ -130,11 +144,15 @@ public class FolderService {
         return new MessageResponse("Đã xóa thư mục và toàn bộ nội dung bên trong thành công");
     }
 
-    private void collectDescendantFolders(UUID folderId, List<Folder> allFolders, List<Folder> descendants) {
+    private void collectDescendantFolders(UUID folderId, List<Folder> allFolders, List<Folder> descendants, java.util.Set<UUID> visited) {
+        if (visited.contains(folderId)) {
+            return;
+        }
+        visited.add(folderId);
         for (Folder f : allFolders) {
             if (folderId.equals(f.getParentId())) {
                 descendants.add(f);
-                collectDescendantFolders(f.getId(), allFolders, descendants);
+                collectDescendantFolders(f.getId(), allFolders, descendants, visited);
             }
         }
     }

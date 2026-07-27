@@ -38,13 +38,19 @@ public class DataSeeder implements CommandLineRunner {
     @Value("${app.seed.demo-data:true}")
     private boolean demoDataEnabled;
 
+    @Value("${app.seed.admin-password:admin123}")
+    private String adminPassword;
+
+    @Value("${app.seed.user-password:user123}")
+    private String userPassword;
+
     @Override
     @Transactional
     public void run(String... args) throws Exception {
         log.info("Checking database for initial data seeding...");
         
-        User admin = seedUser("admin@aistudyhub.com", "admin123", "System Admin", Role.ADMIN);
-        User normalUser = seedUser("user@aistudyhub.com", "user123", "Test User", Role.USER);
+        User admin = seedUser("admin@aistudyhub.com", adminPassword, "System Admin", Role.ADMIN);
+        User normalUser = seedUser("user@aistudyhub.com", userPassword, "Test User", Role.USER);
         
         // Seed default system configs (feature flags)
         seedConfig("feature.ai_chat.enabled",   "true",  "Bật/tắt tính năng AI chat với tài liệu");

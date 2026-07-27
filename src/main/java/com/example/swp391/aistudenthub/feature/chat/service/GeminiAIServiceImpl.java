@@ -202,7 +202,7 @@ public class GeminiAIServiceImpl implements AIService {
         ObjectNode imagePart = parts.addObject();
         ObjectNode fileData = imagePart.putObject("fileData");
         fileData.put("fileUri", imageUrl);
-        // mimeType để trống, Gemini tự detect từ URL
+        fileData.put("mimeType", getMimeType(imageUrl));
 
         // Thêm câu hỏi của người dùng liên quan đến hình ảnh
         parts.addObject().put("text", "Hãy phân tích hình ảnh này và trả lời câu hỏi sau: " + question);
@@ -260,5 +260,17 @@ public class GeminiAIServiceImpl implements AIService {
                 onError.accept(e);
             }
         }).start();
+    }
+
+    private String getMimeType(String url) {
+        if (url == null) return "image/jpeg";
+        String lower = url.toLowerCase();
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".gif")) return "image/gif";
+        if (lower.endsWith(".heic")) return "image/heic";
+        if (lower.endsWith(".heif")) return "image/heif";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        return "image/jpeg";
     }
 }
