@@ -42,7 +42,8 @@ public enum ErrorCode {
     FOLDER_ALREADY_EXISTS("Tên thư mục đã tồn tại", HttpStatus.BAD_REQUEST),
 
     // System
-    FEATURE_DISABLED("Tính năng này hiện đang bị tắt", HttpStatus.FORBIDDEN);
+    FEATURE_DISABLED("Tính năng này hiện đang bị tắt", HttpStatus.FORBIDDEN),
+    LIMIT_EXCEEDED("Vượt quá giới hạn cho phép của gói cước", HttpStatus.BAD_REQUEST);
 
     private final String message;
     private final HttpStatus httpStatus;

@@ -19,6 +19,8 @@ import org.springframework.util.StringUtils;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.Optional;
+import com.example.swp391.aistudenthub.feature.payment.entity.PaymentOrder;
 
 @Service
 @RequiredArgsConstructor
@@ -98,7 +100,18 @@ public class UserProfileService {
     }
 
     private UserProfileResponse mapToResponse(User user) {
-        boolean isPremium = paymentOrderRepository.existsByUserIdAndStatus(user.getId(), PaymentStatus.PAID);
+        Optional<PaymentOrder> latestPaidOrder = paymentOrderRepository.findFirstByUserIdAndStatusOrderByCreatedAtDesc(user.getId(), PaymentStatus.PAID);
+        boolean isPremium = latestPaidOrder.isPresent();
+        String subscriptionTier = "BASIC";
+        if (latestPaidOrder.isPresent()) {
+            int amount = latestPaidOrder.get().getAmount();
+            if (amount >= 79000) {
+                subscriptionTier = "PREMIUM";
+            } else if (amount >= 39000) {
+                subscriptionTier = "PRO";
+            }
+        }
+
         return UserProfileResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
@@ -110,6 +123,7 @@ public class UserProfileService {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .isPremium(isPremium)
+                .subscriptionTier(subscriptionTier)
                 .build();
     }
 }

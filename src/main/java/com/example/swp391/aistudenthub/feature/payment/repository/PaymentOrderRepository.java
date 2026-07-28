@@ -15,5 +15,7 @@ public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, UUID
 
     List<PaymentOrder> findByUserIdOrderByCreatedAtDesc(UUID userId);
 
+    Optional<PaymentOrder> findFirstByUserIdAndStatusOrderByCreatedAtDesc(UUID userId, com.example.swp391.aistudenthub.feature.payment.enums.PaymentStatus status);
+
     boolean existsByUserIdAndStatus(UUID userId, com.example.swp391.aistudenthub.feature.payment.enums.PaymentStatus status);
 }

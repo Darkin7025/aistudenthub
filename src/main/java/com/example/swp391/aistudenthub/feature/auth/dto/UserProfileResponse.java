@@ -20,4 +20,5 @@ public class UserProfileResponse {
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
     private boolean isPremium;
+    private String subscriptionTier;
 }
