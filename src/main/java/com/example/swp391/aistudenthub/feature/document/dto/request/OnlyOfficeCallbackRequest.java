@@ -21,7 +21,7 @@ public class OnlyOfficeCallbackRequest {
     private String changesurl;
     private List<String> users;
     private String userdata;
-    private Integer filetype;
-    private String forcesavetype;
+    private String filetype;
+    private Integer forcesavetype;
     private String token;
 }
