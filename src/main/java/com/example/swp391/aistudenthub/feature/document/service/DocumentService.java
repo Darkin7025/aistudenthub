@@ -29,6 +29,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import com.example.swp391.aistudenthub.feature.payment.repository.PaymentOrderRepository;
+import com.example.swp391.aistudenthub.feature.payment.enums.PaymentStatus;
+import com.example.swp391.aistudenthub.feature.payment.entity.PaymentOrder;
+import java.util.Optional;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -60,6 +64,7 @@ public class DocumentService {
     private final SystemConfigRepository systemConfigRepository;
     private final com.example.swp391.aistudenthub.config.OnlyOfficeConfig onlyOfficeConfig;
     private final DocumentProcessor documentProcessor;
+    private final PaymentOrderRepository paymentOrderRepository;
 
     @Value("${app.backend-url:${app.base-url:http://localhost:8080}}")
     private String appBaseUrl;
@@ -70,6 +75,8 @@ public class DocumentService {
         validateFile(file);
         validateCustomMetadata(request.getCustomMetadata());
         validateFolderOwnership(request.getFolderId(), userId);
+
+        checkDocumentLimit(userId);
 
         Map<String, String> uploadResult = cloudinaryService.upload(file);
 
@@ -104,6 +111,28 @@ public class DocumentService {
         documentProcessor.processDocumentText(saved.getId());
 
         return documentMapper.toResponse(saved);
+    }
+
+    private void checkDocumentLimit(UUID userId) {
+        long currentDocsCount = documentRepository.countByUserIdAndDeletedAtIsNull(userId);
+        Optional<PaymentOrder> latestPaidOrder = paymentOrderRepository.findFirstByUserIdAndStatusOrderByCreatedAtDesc(userId, PaymentStatus.PAID);
+        int limit = 50;
+        String tierName = "Cơ bản";
+
+        if (latestPaidOrder.isPresent()) {
+            int amount = latestPaidOrder.get().getAmount();
+            if (amount >= 79000) {
+                return; // PREMIUM has unlimited storage
+            } else if (amount >= 39000) {
+                limit = 500;
+                tierName = "Nâng cao";
+            }
+        }
+
+        if (currentDocsCount >= limit) {
+            throw new AppException(ErrorCode.LIMIT_EXCEEDED,
+                String.format("Bạn đã đạt giới hạn lưu trữ tối đa của gói %s (%d tài liệu).", tierName, limit));
+        }
     }
 
     @Transactional(readOnly = true)

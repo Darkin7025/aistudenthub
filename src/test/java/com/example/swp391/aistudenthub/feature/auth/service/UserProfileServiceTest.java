@@ -64,7 +64,7 @@ class UserProfileServiceTest {
         when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
         when(userRepository.existsByEmailAndDeletedAtIsNull("new@example.com")).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(paymentOrderRepository.existsByUserIdAndStatus(any(UUID.class), any(PaymentStatus.class))).thenReturn(false);
+        when(paymentOrderRepository.findFirstByUserIdAndStatusOrderByCreatedAtDesc(any(UUID.class), any(PaymentStatus.class))).thenReturn(Optional.empty());
 
         UserProfileResponse response = userProfileService.updateProfile(userId, request);
 

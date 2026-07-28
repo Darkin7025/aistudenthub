@@ -12,6 +12,7 @@ import java.util.UUID;
 public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     List<Document> findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(UUID userId);
+    long countByUserIdAndDeletedAtIsNull(UUID userId);
     Optional<Document> findByIdAndDeletedAtIsNull(UUID id);
 
     List<Document> findByUserIdAndFolderIdAndDeletedAtIsNull(UUID userId, UUID folderId);
