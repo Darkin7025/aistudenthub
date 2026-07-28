@@ -158,6 +158,7 @@ public class FolderService {
     }
 
     private FolderResponse mapToResponse(Folder folder) {
+        long count = documentRepository.countByFolderIdAndDeletedAtIsNull(folder.getId());
         return FolderResponse.builder()
                 .id(folder.getId())
                 .name(folder.getName())
@@ -166,7 +167,7 @@ public class FolderService {
                 .parentId(folder.getParentId())
                 .createdAt(folder.getCreatedAt())
                 .updatedAt(folder.getUpdatedAt())
-                .documentCount(0L)
+                .documentCount(count)
                 .build();
     }
 }
