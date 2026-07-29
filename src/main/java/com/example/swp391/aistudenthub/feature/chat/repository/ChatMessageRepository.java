@@ -12,12 +12,13 @@ import java.util.UUID;
 
 @Repository
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> {
-    List<ChatMessage> findBySessionIdOrderByCreatedAtAsc(UUID sessionId);
-    long countBySessionId(UUID sessionId);
+        List<ChatMessage> findBySessionIdOrderByCreatedAtAsc(UUID sessionId);
 
-    @Query("SELECT m.session.id, COUNT(m.id) FROM ChatMessage m " +
-            "WHERE m.session.id IN :sessionIds GROUP BY m.session.id")
-    List<Object[]> countBySessionIds(@Param("sessionIds") Collection<UUID> sessionIds);
+        long countBySessionId(UUID sessionId);
 
-    void deleteBySessionId(UUID sessionId);
+        @Query("SELECT m.session.id, COUNT(m.id) FROM ChatMessage m " +
+                        "WHERE m.session.id IN :sessionIds GROUP BY m.session.id")
+        List<Object[]> countBySessionIds(@Param("sessionIds") Collection<UUID> sessionIds);
+
+        void deleteBySessionId(UUID sessionId);
 }

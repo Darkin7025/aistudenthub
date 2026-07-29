@@ -11,6 +11,8 @@ import com.example.swp391.aistudenthub.feature.admin.dto.response.AiUsageRespons
 import com.example.swp391.aistudenthub.feature.admin.dto.response.DocumentTypeStatResponse;
 import com.example.swp391.aistudenthub.feature.admin.dto.response.SystemConfigResponse;
 import com.example.swp391.aistudenthub.feature.admin.dto.response.UploadTrendResponse;
+import com.example.swp391.aistudenthub.feature.admin.dto.response.AdminBusinessStatsResponse;
+import com.example.swp391.aistudenthub.feature.admin.dto.response.RevenueTrendResponse;
 import com.example.swp391.aistudenthub.feature.admin.entity.SystemConfig;
 import com.example.swp391.aistudenthub.feature.admin.repository.SystemConfigRepository;
 import com.example.swp391.aistudenthub.feature.auth.entity.User;
@@ -20,6 +22,9 @@ import com.example.swp391.aistudenthub.feature.document.repository.DocumentRepos
 import com.example.swp391.aistudenthub.feature.admin.dto.response.AdminDocumentResponse;
 import com.example.swp391.aistudenthub.feature.document.dto.response.UploadStatusResponse;
 import com.example.swp391.aistudenthub.feature.document.entity.Document;
+import com.example.swp391.aistudenthub.feature.payment.repository.PaymentOrderRepository;
+import com.example.swp391.aistudenthub.feature.payment.enums.PaymentStatus;
+import com.example.swp391.aistudenthub.feature.payment.entity.PaymentOrder;
 import com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility;
 import com.example.swp391.aistudenthub.feature.document.enums.PreviewMode;
 import com.example.swp391.aistudenthub.feature.document.service.DocumentPreviewResolver;
@@ -59,6 +64,7 @@ public class AdminServiceImpl implements AdminService {
     private final SystemLogService systemLogService;
     private final DocumentService documentService;
     private final DocumentPreviewResolver previewResolver;
+    private final PaymentOrderRepository paymentOrderRepository;
 
     // =========================================================
     // USER MANAGEMENT
@@ -181,6 +187,55 @@ public class AdminServiceImpl implements AdminService {
                 .documentsWithoutAiChat(docsWithout)
                 .aiUsagePercent(percent)
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AdminBusinessStatsResponse getBusinessStats() {
+        long totalRevenue = paymentOrderRepository.calculateTotalRevenue();
+        
+        OffsetDateTime startOfMonth = OffsetDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        long currentMonthRevenue = paymentOrderRepository.calculateRevenueFromDate(startOfMonth);
+        
+        long activePremiumUsers = paymentOrderRepository.countActivePremiumUsers();
+        
+        List<String> popularPackages = paymentOrderRepository.findMostPopularPackages();
+        String mostPopularPackage = popularPackages.isEmpty() ? "Không có dữ liệu" : popularPackages.get(0);
+        
+        return AdminBusinessStatsResponse.builder()
+                .totalRevenue(totalRevenue)
+                .currentMonthRevenue(currentMonthRevenue)
+                .activePremiumUsers(activePremiumUsers)
+                .mostPopularPackage(mostPopularPackage)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RevenueTrendResponse> getRevenueTrend(int days) {
+        if (days <= 0 || days > 365) days = 30;
+        OffsetDateTime from = OffsetDateTime.now().minusDays(days).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        List<PaymentOrder> orders = paymentOrderRepository.findByStatusAndPaidAtAfterOrderByPaidAtAsc(PaymentStatus.PAID, from);
+        
+        // Group by date
+        Map<String, Long> revenueByDate = new HashMap<>();
+        for (PaymentOrder order : orders) {
+            if (order.getPaidAt() != null) {
+                String dateStr = order.getPaidAt().format(fmt);
+                revenueByDate.put(dateStr, revenueByDate.getOrDefault(dateStr, 0L) + order.getAmount());
+            }
+        }
+        
+        // Fill missing days with 0
+        return java.util.stream.IntStream.rangeClosed(0, days)
+                .mapToObj(i -> from.plusDays(i).format(fmt))
+                .map(dateStr -> RevenueTrendResponse.builder()
+                        .date(dateStr)
+                        .revenue(revenueByDate.getOrDefault(dateStr, 0L))
+                        .build())
+                .collect(Collectors.toList());
     }
 
     // =========================================================

@@ -3,8 +3,10 @@ package com.example.swp391.aistudenthub.feature.admin.controller;
 import com.example.swp391.aistudenthub.common.dto.ApiResponse;
 import com.example.swp391.aistudenthub.feature.admin.dto.response.AdminDashboardStatsResponse;
 import com.example.swp391.aistudenthub.feature.admin.dto.response.AiUsageResponse;
-import com.example.swp391.aistudenthub.feature.admin.dto.response.DocumentTypeStatResponse;
 import com.example.swp391.aistudenthub.feature.admin.dto.response.UploadTrendResponse;
+import com.example.swp391.aistudenthub.feature.admin.dto.response.DocumentTypeStatResponse;
+import com.example.swp391.aistudenthub.feature.admin.dto.response.AdminBusinessStatsResponse;
+import com.example.swp391.aistudenthub.feature.admin.dto.response.RevenueTrendResponse;
 import com.example.swp391.aistudenthub.feature.admin.service.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -89,5 +91,26 @@ public class AdminDashboardController {
     public ResponseEntity<ApiResponse<AiUsageResponse>> getAiUsage() {
         AiUsageResponse usage = adminService.getAiUsage();
         return ResponseEntity.ok(ApiResponse.success(usage));
+    }
+
+    @GetMapping("/business-stats")
+    @Operation(
+        summary = "Thống kê doanh thu",
+        description = "Trả về tổng doanh thu, doanh thu tháng này, số lượng user premium đang active và gói bán chạy nhất."
+    )
+    public ResponseEntity<ApiResponse<AdminBusinessStatsResponse>> getBusinessStats() {
+        AdminBusinessStatsResponse stats = adminService.getBusinessStats();
+        return ResponseEntity.ok(ApiResponse.success(stats));
+    }
+
+    @GetMapping("/revenue-trend")
+    @Operation(
+        summary = "Xu hướng doanh thu theo ngày",
+        description = "Trả về biểu đồ doanh thu theo ngày trong khoảng N ngày gần nhất."
+    )
+    public ResponseEntity<ApiResponse<List<RevenueTrendResponse>>> getRevenueTrend(
+            @RequestParam(defaultValue = "30") int days) {
+        List<RevenueTrendResponse> trend = adminService.getRevenueTrend(days);
+        return ResponseEntity.ok(ApiResponse.success(trend));
     }
 }
