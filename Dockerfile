@@ -4,6 +4,8 @@ WORKDIR /app
 COPY pom.xml .
 # Download dependencies first to cache them
 RUN mvn dependency:go-offline -B
+# Hạn chế RAM của Maven lúc Build để không bị sập trên Render
+ENV MAVEN_OPTS="-Xmx256m"
 # Copy the source code and build the application
 COPY src ./src
 RUN mvn package -DskipTests
