@@ -10,6 +10,8 @@ import com.example.swp391.aistudenthub.feature.admin.dto.response.AiUsageRespons
 import com.example.swp391.aistudenthub.feature.admin.dto.response.DocumentTypeStatResponse;
 import com.example.swp391.aistudenthub.feature.admin.dto.response.SystemConfigResponse;
 import com.example.swp391.aistudenthub.feature.admin.dto.response.UploadTrendResponse;
+import com.example.swp391.aistudenthub.feature.admin.dto.response.AdminBusinessStatsResponse;
+import com.example.swp391.aistudenthub.feature.admin.dto.response.RevenueTrendResponse;
 import com.example.swp391.aistudenthub.feature.auth.entity.User;
 import com.example.swp391.aistudenthub.feature.document.dto.response.UploadStatusResponse;
 import com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility;
@@ -44,6 +46,10 @@ public interface AdminService {
         List<UploadTrendResponse> getUploadTrend(int days);
 
         AiUsageResponse getAiUsage();
+
+        AdminBusinessStatsResponse getBusinessStats();
+
+        List<RevenueTrendResponse> getRevenueTrend(int days);
 
         // ---- System Config ----
 
