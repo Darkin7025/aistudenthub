@@ -197,7 +197,8 @@ public class AdminServiceImpl implements AdminService {
         OffsetDateTime startOfMonth = OffsetDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
         long currentMonthRevenue = paymentOrderRepository.calculateRevenueFromDate(startOfMonth);
         
-        long activePremiumUsers = paymentOrderRepository.countActivePremiumUsers();
+        OffsetDateTime oneMonthAgo = OffsetDateTime.now().minusMonths(1);
+        long activePremiumUsers = paymentOrderRepository.countActivePremiumUsers(oneMonthAgo);
         
         List<String> popularPackages = paymentOrderRepository.findMostPopularPackages();
         String mostPopularPackage = popularPackages.isEmpty() ? "Không có dữ liệu" : popularPackages.get(0);

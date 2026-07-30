@@ -19,5 +19,5 @@ COPY --from=builder /app/target/*.jar app.jar
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Run the application with dynamic memory settings (auto-scales based on Render plan)
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-XX:InitialRAMPercentage=30.0", "-jar", "app.jar"]
+# Run the application with optimized settings for Render Free Tier (512MB RAM, 0.1 CPU) to prevent OOM
+ENTRYPOINT ["java", "-XX:+UseSerialGC", "-Xss256k", "-XX:MaxRAMPercentage=60.0", "-XX:MaxMetaspaceSize=128m", "-jar", "app.jar"]

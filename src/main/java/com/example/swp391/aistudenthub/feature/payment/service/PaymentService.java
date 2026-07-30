@@ -40,6 +40,13 @@ public class PaymentService {
 
     @Transactional
     public PaymentResponse createPaymentLink(CreatePaymentRequest request, UUID userId) {
+        paymentOrderRepository.findFirstByUserIdAndStatusOrderByCreatedAtDesc(userId, PaymentStatus.PAID)
+                .ifPresent(order -> {
+                    if (order.getPaidAt() != null && order.getPaidAt().plusMonths(1).isAfter(OffsetDateTime.now())) {
+                        throw new AppException(ErrorCode.VALIDATION_ERROR, "Bạn đang có gói cước hoạt động, không thể mua thêm.");
+                    }
+                });
+
         long orderCode = System.currentTimeMillis() / 1000;
 
         String returnUrl = StringUtils.hasText(request.getReturnUrl()) ? request.getReturnUrl()
