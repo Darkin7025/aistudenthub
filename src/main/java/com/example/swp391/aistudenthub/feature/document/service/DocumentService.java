@@ -115,7 +115,8 @@ public class DocumentService {
 
     private void checkDocumentLimit(UUID userId) {
         long currentDocsCount = documentRepository.countByUserIdAndDeletedAtIsNull(userId);
-        Optional<PaymentOrder> latestPaidOrder = paymentOrderRepository.findFirstByUserIdAndStatusOrderByCreatedAtDesc(userId, PaymentStatus.PAID);
+        Optional<PaymentOrder> latestPaidOrder = paymentOrderRepository
+                .findFirstByUserIdAndStatusOrderByCreatedAtDesc(userId, PaymentStatus.PAID);
         int limit = 50;
         String tierName = "Cơ bản";
 
@@ -131,7 +132,7 @@ public class DocumentService {
 
         if (currentDocsCount >= limit) {
             throw new AppException(ErrorCode.LIMIT_EXCEEDED,
-                String.format("Bạn đã đạt giới hạn lưu trữ tối đa của gói %s (%d tài liệu).", tierName, limit));
+                    String.format("Bạn đã đạt giới hạn lưu trữ tối đa của gói %s (%d tài liệu).", tierName, limit));
         }
     }
 
@@ -144,7 +145,8 @@ public class DocumentService {
     }
 
     @Transactional(readOnly = true)
-    public DocumentResponse getById(UUID documentId, com.example.swp391.aistudenthub.feature.auth.entity.User currentUser) {
+    public DocumentResponse getById(UUID documentId,
+            com.example.swp391.aistudenthub.feature.auth.entity.User currentUser) {
         Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
 
@@ -192,7 +194,8 @@ public class DocumentService {
     }
 
     @Transactional(readOnly = true)
-    public String downloadDocument(UUID documentId, com.example.swp391.aistudenthub.feature.auth.entity.User currentUser) {
+    public String downloadDocument(UUID documentId,
+            com.example.swp391.aistudenthub.feature.auth.entity.User currentUser) {
         Document doc = documentRepository.findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
 
@@ -628,7 +631,8 @@ public class DocumentService {
         boolean canEdit = doc.getUserId().equals(currentUser.getId())
                 || com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole());
 
-        String fileName = StringUtils.hasText(doc.getOriginalFileName()) ? doc.getOriginalFileName() : doc.getFileName();
+        String fileName = StringUtils.hasText(doc.getOriginalFileName()) ? doc.getOriginalFileName()
+                : doc.getFileName();
         String fileExt = "docx";
         if (fileName != null && fileName.contains(".")) {
             fileExt = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
@@ -636,52 +640,55 @@ public class DocumentService {
 
         String documentType = resolveOnlyOfficeDocumentType(fileExt);
 
-        // Use current timestamp to force a fresh OnlyOffice session each time the editor is opened.
-        // This prevents the "backup copy" warning caused by stale session keys from previous editors.
+        // Use current timestamp to force a fresh OnlyOffice session each time the
+        // editor is opened.
+        // This prevents the "backup copy" warning caused by stale session keys from
+        // previous editors.
         String documentKey = doc.getId().toString().replace("-", "") + "_" + System.currentTimeMillis();
 
         String callbackUrl = appBaseUrl + "/api/v1/documents/" + doc.getId() + "/onlyoffice-callback";
 
-        com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.Permissions permissions =
-                com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.Permissions.builder()
-                        .edit(canEdit)
-                        .download(true)
-                        .print(true)
-                        .comment(true)
-                        .build();
+        com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.Permissions permissions = com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.Permissions
+                .builder()
+                .edit(canEdit)
+                .download(true)
+                .print(true)
+                .comment(true)
+                .build();
 
-        com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.DocumentConfig documentConfig =
-                com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.DocumentConfig.builder()
-                        .fileType(fileExt)
-                        .key(documentKey)
-                        .title(fileName)
-                        .url(doc.getFileUrl())
-                        .permissions(permissions)
-                        .build();
+        com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.DocumentConfig documentConfig = com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.DocumentConfig
+                .builder()
+                .fileType(fileExt)
+                .key(documentKey)
+                .title(fileName)
+                .url(doc.getFileUrl())
+                .permissions(permissions)
+                .build();
 
-        com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.UserInfo userInfo =
-                com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.UserInfo.builder()
-                        .id(currentUser.getId().toString())
-                        .name(currentUser.getFullName() != null ? currentUser.getFullName() : currentUser.getEmail())
-                        .build();
+        com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.UserInfo userInfo = com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.UserInfo
+                .builder()
+                .id(currentUser.getId().toString())
+                .name(currentUser.getFullName() != null ? currentUser.getFullName() : currentUser.getEmail())
+                .build();
 
-        com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.EditorConfig editorConfig =
-                com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.EditorConfig.builder()
-                        .mode(canEdit ? "edit" : "view")
-                        .callbackUrl(callbackUrl)
-                        .user(userInfo)
-                        .lang("vi")
-                        .customization(com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.Customization.builder()
+        com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.EditorConfig editorConfig = com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.EditorConfig
+                .builder()
+                .mode(canEdit ? "edit" : "view")
+                .callbackUrl(callbackUrl)
+                .user(userInfo)
+                .lang("vi")
+                .customization(
+                        com.example.swp391.aistudenthub.feature.document.dto.response.OnlyOfficeConfigResponse.Customization
+                                .builder()
                                 .autosave(true)
                                 .forcesave(true)
                                 .build())
-                        .build();
+                .build();
 
         Map<String, Object> payload = Map.of(
                 "document", documentConfig,
                 "documentType", documentType,
-                "editorConfig", editorConfig
-        );
+                "editorConfig", editorConfig);
 
         String token = onlyOfficeConfig.createToken(payload);
 
@@ -737,8 +744,10 @@ public class DocumentService {
                         updatedBytes = in.readAllBytes();
                     }
 
-                    String fileName = StringUtils.hasText(doc.getOriginalFileName()) ? doc.getOriginalFileName() : doc.getFileName();
-                    String contentType = doc.getFileType() != null ? doc.getFileType() : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+                    String fileName = StringUtils.hasText(doc.getOriginalFileName()) ? doc.getOriginalFileName()
+                            : doc.getFileName();
+                    String contentType = doc.getFileType() != null ? doc.getFileType()
+                            : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
                     String newExtractedText = null;
                     PreviewMode previewMode = previewResolver.resolveMode(fileName, contentType);
@@ -756,14 +765,16 @@ public class DocumentService {
                         doc.setExtractedText(newExtractedText);
                     }
 
-                    Map<String, String> uploadResult = cloudinaryService.uploadBytes(updatedBytes, fileName, contentType);
+                    Map<String, String> uploadResult = cloudinaryService.uploadBytes(updatedBytes, fileName,
+                            contentType);
                     doc.setFileUrl(uploadResult.get("url"));
                     doc.setStoragePublicId(uploadResult.get("public_id"));
                     doc.setStorageResourceType(uploadResult.get("resource_type"));
                     doc.setFileSize((long) updatedBytes.length);
 
                     documentRepository.save(doc);
-                    log.info("Document {} successfully updated from OnlyOffice callback: size={} bytes, extractedText length={}",
+                    log.info(
+                            "Document {} successfully updated from OnlyOffice callback: size={} bytes, extractedText length={}",
                             documentId, updatedBytes.length, newExtractedText != null ? newExtractedText.length() : 0);
                 } catch (Exception e) {
                     log.error("Failed to process OnlyOffice callback save for document {}", documentId, e);

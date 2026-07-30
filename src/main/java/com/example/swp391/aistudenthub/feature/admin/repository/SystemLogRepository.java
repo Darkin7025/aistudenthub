@@ -18,6 +18,7 @@ public interface SystemLogRepository extends JpaRepository<SystemLog, UUID> {
     boolean existsByAction(String action);
 
     Page<SystemLog> findByLevelOrderByCreatedAtDesc(LogLevel level, Pageable pageable);
+
     Page<SystemLog> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     @Query("SELECT s FROM SystemLog s WHERE " +
@@ -29,12 +30,12 @@ public interface SystemLogRepository extends JpaRepository<SystemLog, UUID> {
             "(CAST(:to AS string) IS NULL OR s.createdAt <= :to) " +
             "ORDER BY s.createdAt DESC")
     Page<SystemLog> searchLogs(@Param("level") LogLevel level,
-                               @Param("action") String action,
-                               @Param("actorUserId") UUID actorUserId,
-                               @Param("source") String source,
-                               @Param("from") OffsetDateTime from,
-                               @Param("to") OffsetDateTime to,
-                               Pageable pageable);
+            @Param("action") String action,
+            @Param("actorUserId") UUID actorUserId,
+            @Param("source") String source,
+            @Param("from") OffsetDateTime from,
+            @Param("to") OffsetDateTime to,
+            Pageable pageable);
 
     @Modifying
     @Query("DELETE FROM SystemLog s WHERE s.createdAt < :before")

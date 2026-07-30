@@ -101,14 +101,19 @@ public class UserProfileService {
 
     private UserProfileResponse mapToResponse(User user) {
         Optional<PaymentOrder> latestPaidOrder = paymentOrderRepository.findFirstByUserIdAndStatusOrderByCreatedAtDesc(user.getId(), PaymentStatus.PAID);
-        boolean isPremium = latestPaidOrder.isPresent();
+        boolean isPremium = false;
         String subscriptionTier = "BASIC";
+        
         if (latestPaidOrder.isPresent()) {
-            int amount = latestPaidOrder.get().getAmount();
-            if (amount >= 79000) {
-                subscriptionTier = "PREMIUM";
-            } else if (amount >= 39000) {
-                subscriptionTier = "PRO";
+            PaymentOrder order = latestPaidOrder.get();
+            if (order.getPaidAt() != null && order.getPaidAt().plusMonths(1).isAfter(java.time.OffsetDateTime.now())) {
+                isPremium = true;
+                int amount = order.getAmount();
+                if (amount >= 79000) {
+                    subscriptionTier = "PREMIUM";
+                } else if (amount >= 39000) {
+                    subscriptionTier = "PRO";
+                }
             }
         }
 
