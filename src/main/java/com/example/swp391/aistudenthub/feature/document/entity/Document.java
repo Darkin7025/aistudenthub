@@ -9,7 +9,6 @@ import com.example.swp391.aistudenthub.feature.document.enums.UploadStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-
 @Entity
 @Table(name = "documents")
 @Getter
@@ -23,7 +22,6 @@ public class Document {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-   
     @Column(name = "uploaded_by", nullable = false)
     private UUID userId;
 
@@ -33,15 +31,12 @@ public class Document {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-
-    @Column(name = "file_url", nullable = false, length = 2000)
+    @Column(name = "file_url", nullable = false, length = 2000) // đường link trực tiếp để xem hoặc tải file
     private String fileUrl;
 
-  
     @Column(name = "file_name", nullable = false, length = 255)
     private String fileName;
 
-    
     @Column(name = "original_file_name", length = 255)
     private String originalFileName;
 
@@ -51,17 +46,17 @@ public class Document {
     @Column(name = "file_type", length = 100)
     private String fileType;
 
-    @Column(name = "storage_public_id", nullable = false, length = 500)
+    @Column(name = "storage_public_id", nullable = false, length = 500) // Mã ID quản lý của file trên Cloudinary
     private String storagePublicId;
 
     @Column(name = "storage_key", nullable = false, length = 500)
     private String storageKey;
 
-    @Column(name = "storage_resource_type", length = 50)
+    @Column(name = "storage_resource_type", length = 50) // phân loại file upload lên(ví dụ: image, raw, video)
     private String storageResourceType;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "visibility", nullable = false)
+    @Column(name = "visibility", nullable = false) // công khai hay riêng tư
     @Builder.Default
     private DocumentVisibility visibility = DocumentVisibility.PRIVATE;
 
@@ -86,10 +81,10 @@ public class Document {
     @Builder.Default
     private Integer uploadProgress = 100;
 
-    @Column(name = "extracted_text", columnDefinition = "TEXT")
+    @Column(name = "extracted_text", columnDefinition = "TEXT") // nội dung đã được trích xuất
     private String extractedText;
 
-    @Column(name = "custom_metadata", columnDefinition = "TEXT")
+    @Column(name = "custom_metadata", columnDefinition = "TEXT") // dữ liệu metadata tuỳ chỉnh
     private String customMetadata;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -101,7 +96,7 @@ public class Document {
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
 
-    @Column(name = "storage_bucket", nullable = false)
+    @Column(name = "storage_bucket", nullable = false) // nơi lưu trữ
     private String storageBucket;
 
     @PrePersist
