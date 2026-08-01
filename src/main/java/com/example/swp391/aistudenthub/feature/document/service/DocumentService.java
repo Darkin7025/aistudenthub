@@ -67,6 +67,8 @@ public class DocumentService {
     private final com.example.swp391.aistudenthub.config.OnlyOfficeConfig onlyOfficeConfig;
     private final DocumentProcessor documentProcessor;
     private final PaymentOrderRepository paymentOrderRepository;
+    private final com.example.swp391.aistudenthub.feature.auth.repository.UserRepository userRepository;
+    private final com.example.swp391.aistudenthub.feature.document.repository.DocumentShareRepository documentShareRepository;
 
     @Value("${app.backend-url:${app.base-url:http://localhost:8080}}")
     private String appBaseUrl;
@@ -820,5 +822,70 @@ public class DocumentService {
                     }
                 })
                 .orElse(DEFAULT_MAX_FILE_SIZE);
+    }
+
+    @Transactional
+    public com.example.swp391.aistudenthub.feature.document.dto.response.DocumentShareResponse shareDocument(UUID documentId, com.example.swp391.aistudenthub.feature.document.dto.request.ShareDocumentRequest request, UUID currentUserId) {
+        Document document = documentRepository.findByIdAndDeletedAtIsNull(documentId)
+                .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+
+        if (!document.getUserId().equals(currentUserId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED, "Bạn không có quyền chia sẻ tài liệu này");
+        }
+
+        com.example.swp391.aistudenthub.feature.auth.entity.User targetUser = userRepository.findByEmailAndDeletedAtIsNull(request.getTargetEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "Không tìm thấy người dùng với email: " + request.getTargetEmail()));
+
+        if (targetUser.getId().equals(currentUserId)) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Bạn không thể tự chia sẻ tài liệu cho chính mình");
+        }
+
+        if (documentShareRepository.existsByDocumentIdAndSharedWithUserId(documentId, targetUser.getId())) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Tài liệu này đã được chia sẻ với người dùng này rồi");
+        }
+
+        com.example.swp391.aistudenthub.feature.document.entity.DocumentShare share = com.example.swp391.aistudenthub.feature.document.entity.DocumentShare.builder()
+                .documentId(documentId)
+                .sharedByUserId(currentUserId)
+                .sharedWithUserId(targetUser.getId())
+                .permission(request.getPermission())
+                .build();
+
+        share = documentShareRepository.save(share);
+
+        return com.example.swp391.aistudenthub.feature.document.dto.response.DocumentShareResponse.builder()
+                .id(share.getId())
+                .documentId(share.getDocumentId())
+                .sharedByUserId(share.getSharedByUserId())
+                .sharedWithUserId(share.getSharedWithUserId())
+                .permission(share.getPermission())
+                .createdAt(share.getCreatedAt())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DocumentResponse> getSharedWithMe(UUID currentUserId) {
+        List<com.example.swp391.aistudenthub.feature.document.entity.DocumentShare> shares = documentShareRepository.findBySharedWithUserIdOrderByCreatedAtDesc(currentUserId);
+        
+        return shares.stream()
+                .map(share -> documentRepository.findByIdAndDeletedAtIsNull(share.getDocumentId()).orElse(null))
+                .filter(doc -> doc != null)
+                .map(documentMapper::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public void revokeShare(UUID documentId, UUID targetUserId, UUID currentUserId) {
+        Document document = documentRepository.findByIdAndDeletedAtIsNull(documentId)
+                .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
+
+        if (!document.getUserId().equals(currentUserId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED, "Bạn không có quyền thu hồi chia sẻ tài liệu này");
+        }
+
+        com.example.swp391.aistudenthub.feature.document.entity.DocumentShare share = documentShareRepository.findByDocumentIdAndSharedWithUserId(documentId, targetUserId)
+                .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND, "Không tìm thấy dữ liệu chia sẻ này"));
+
+        documentShareRepository.delete(share);
     }
 }

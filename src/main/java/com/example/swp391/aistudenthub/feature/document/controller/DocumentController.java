@@ -240,4 +240,27 @@ public class DocumentController {
         java.util.Map<String, Object> response = documentService.handleOnlyOfficeCallback(id, callback);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/{id}/share")
+    public ResponseEntity<ApiResponse<com.example.swp391.aistudenthub.feature.document.dto.response.DocumentShareResponse>> shareDocument(
+            @PathVariable UUID id,
+            @jakarta.validation.Valid @RequestBody com.example.swp391.aistudenthub.feature.document.dto.request.ShareDocumentRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(ApiResponse.success(documentService.shareDocument(id, request, currentUser.getId())));
+    }
+
+    @GetMapping("/shared-with-me")
+    public ResponseEntity<ApiResponse<List<DocumentResponse>>> getSharedWithMe(
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(ApiResponse.success(documentService.getSharedWithMe(currentUser.getId())));
+    }
+
+    @DeleteMapping("/{id}/share/{targetUserId}")
+    public ResponseEntity<ApiResponse<MessageResponse>> revokeShare(
+            @PathVariable UUID id,
+            @PathVariable UUID targetUserId,
+            @AuthenticationPrincipal User currentUser) {
+        documentService.revokeShare(id, targetUserId, currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.success(new MessageResponse("Đã thu hồi quyền chia sẻ thành công")));
+    }
 }

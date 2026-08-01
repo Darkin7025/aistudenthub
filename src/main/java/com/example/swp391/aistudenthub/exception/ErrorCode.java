@@ -18,8 +18,10 @@ public enum ErrorCode {
     NEW_PASSWORD_MUST_BE_DIFFERENT("M\u1eadt kh\u1ea9u m\u1edbi ph\u1ea3i kh\u00e1c m\u1eadt kh\u1ea9u hi\u1ec7n t\u1ea1i", HttpStatus.BAD_REQUEST),
 
     // General
-    VALIDATION_ERROR("D\u1eef li\u1ec7u \u0111\u1ea7u v\u00e0o kh\u00f4ng h\u1ee3p l\u1ec7", HttpStatus.BAD_REQUEST),
-    INTERNAL_ERROR("L\u1ed7i h\u1ec7 th\u1ed1ng, vui l\u00f2ng th\u1eed l\u1ea1i sau", HttpStatus.INTERNAL_SERVER_ERROR),
+    VALIDATION_ERROR("Dữ liệu đầu vào không hợp lệ", HttpStatus.BAD_REQUEST),
+    INTERNAL_ERROR("Lỗi hệ thống, vui lòng thử lại sau", HttpStatus.INTERNAL_SERVER_ERROR),
+    INVALID_REQUEST("Yêu cầu không hợp lệ", HttpStatus.BAD_REQUEST),
+    ACCESS_DENIED("Bạn không có quyền truy cập", HttpStatus.FORBIDDEN),
 
     // Document
     FILE_TOO_LARGE("File vượt quá dung lượng cho phép (10MB)", HttpStatus.BAD_REQUEST),
