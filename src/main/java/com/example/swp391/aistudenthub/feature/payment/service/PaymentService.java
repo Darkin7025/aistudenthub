@@ -43,7 +43,9 @@ public class PaymentService {
         paymentOrderRepository.findFirstByUserIdAndStatusOrderByCreatedAtDesc(userId, PaymentStatus.PAID)
                 .ifPresent(order -> {
                     if (order.getPaidAt() != null && order.getPaidAt().plusMonths(1).isAfter(OffsetDateTime.now())) {
-                        throw new AppException(ErrorCode.VALIDATION_ERROR, "Bạn đang có gói cước hoạt động, không thể mua thêm.");
+                        if (request.getAmount() <= order.getAmount()) {
+                            throw new AppException(ErrorCode.VALIDATION_ERROR, "Bạn đang có gói cước hoạt động, không thể mua thêm gói cước tương đương hoặc thấp hơn.");
+                        }
                     }
                 });
 
