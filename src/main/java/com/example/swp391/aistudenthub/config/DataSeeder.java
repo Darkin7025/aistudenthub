@@ -59,6 +59,8 @@ public class DataSeeder implements CommandLineRunner {
         seedConfig("system.max_file_size_mb",    "10",    "Kích thước file tối đa cho phép upload (MB)");
         seedConfig("system.ai_model",            "gemini-2.5-flash", "Model AI đang sử dụng");
 
+        seedConfig("system.ai_daily_question_limit", "20", "Daily AI question limit per account");
+
         if (demoDataEnabled) {
             seedDemoData(admin, normalUser);
         } else {

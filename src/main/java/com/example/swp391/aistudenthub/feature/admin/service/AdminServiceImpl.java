@@ -477,5 +477,16 @@ public class AdminServiceImpl implements AdminService {
                         "system.max_file_size_mb phải là số nguyên từ 1 đến 10");
             }
         }
+        if ("system.ai_daily_question_limit".equals(key)) {
+            try {
+                int dailyLimit = Integer.parseInt(value);
+                if (dailyLimit < 1 || dailyLimit > 10000) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException ex) {
+                throw new AppException(ErrorCode.VALIDATION_ERROR,
+                        "system.ai_daily_question_limit must be an integer from 1 to 10000");
+            }
+        }
     }
 }

@@ -80,7 +80,8 @@ public class DocumentController {
         if (major != null && major.trim().isEmpty())
             major = null;
 
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
+                Math.max(page, 0), Math.min(Math.max(size, 1), 50));
         org.springframework.data.domain.Page<DocumentResponse> result = documentService
                 .searchPublicDocuments(keyword, subject, major, pageable);
         return ResponseEntity.ok(ApiResponse.success(result));
@@ -154,7 +155,8 @@ public class DocumentController {
         if (major != null && major.trim().isEmpty())
             major = null;
 
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
+                Math.max(page, 0), Math.min(Math.max(size, 1), 50));
         org.springframework.data.domain.Page<DocumentResponse> result = documentService
                 .searchAndFilterDocuments(currentUser.getId(), keyword, subject, major, folderId, pageable);
         return ResponseEntity.ok(ApiResponse.success(result));

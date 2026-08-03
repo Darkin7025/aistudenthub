@@ -255,6 +255,7 @@ public class DocumentService {
 
         if (request.getExtractedText() != null) {
             doc.setExtractedText(request.getExtractedText());
+            documentProcessor.reindexChunks(documentId, request.getExtractedText());
         }
 
         Document saved = documentRepository.save(doc);
@@ -274,6 +275,7 @@ public class DocumentService {
         }
 
         doc.setExtractedText(request.getContent());
+        documentProcessor.reindexChunks(documentId, request.getContent());
         Document saved = documentRepository.save(doc);
         log.info("Document content updated: id={}, user={}", documentId, requesterId);
         return documentMapper.toResponse(saved);
