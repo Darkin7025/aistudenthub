@@ -20,4 +20,4 @@ COPY --from=builder /app/target/*.jar app.jar
 EXPOSE 8080
 
 # Run the application with optimized settings for Render Free Tier (512MB RAM, 0.1 CPU) to prevent OOM
-ENTRYPOINT ["java", "-XX:+UseSerialGC", "-Xss256k", "-XX:MaxRAMPercentage=60.0", "-XX:MaxMetaspaceSize=128m", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:+UseSerialGC", "-Xss256k", "-XX:MaxRAMPercentage=60.0", "-XX:MaxMetaspaceSize=128m", "-XX:TieredStopAtLevel=1", "-noverify", "-jar", "app.jar"]
