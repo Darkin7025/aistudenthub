@@ -163,13 +163,17 @@ public class DocumentService {
             }
             if (!doc.getUserId().equals(currentUser.getId())
                     && !com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole())) {
-                throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+                boolean isShared = documentShareRepository.existsByDocumentIdAndSharedWithUserId(doc.getId(), currentUser.getId());
+                if (!isShared) {
+                    throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+                }
             }
         }
         DocumentResponse response = documentMapper.toResponse(doc);
         boolean isOwnerOrAdmin = currentUser != null && (doc.getUserId().equals(currentUser.getId())
                 || com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole()));
-        if (!isOwnerOrAdmin) {
+        boolean isShared = currentUser != null && documentShareRepository.existsByDocumentIdAndSharedWithUserId(doc.getId(), currentUser.getId());
+        if (!isOwnerOrAdmin && !isShared) {
             response.setExtractedText(null);
         }
         return response;
@@ -212,7 +216,10 @@ public class DocumentService {
             }
             if (!doc.getUserId().equals(currentUser.getId())
                     && !com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole())) {
-                throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+                boolean isShared = documentShareRepository.existsByDocumentIdAndSharedWithUserId(doc.getId(), currentUser.getId());
+                if (!isShared) {
+                    throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+                }
             }
         }
 
@@ -304,7 +311,10 @@ public class DocumentService {
 
         if (!doc.getUserId().equals(currentUser.getId())
                 && !com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole())) {
-            throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+            boolean isShared = documentShareRepository.existsByDocumentIdAndSharedWithUserId(doc.getId(), currentUser.getId());
+            if (!isShared) {
+                throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+            }
         }
 
         return com.example.swp391.aistudenthub.feature.document.dto.response.UploadStatusResponse.builder()
@@ -478,7 +488,8 @@ public class DocumentService {
         return com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC
                 .equals(doc.getVisibility())
                 || doc.getUserId().equals(currentUser.getId())
-                || com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole());
+                || com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(currentUser.getRole())
+                || documentShareRepository.existsByDocumentIdAndSharedWithUserId(doc.getId(), currentUser.getId());
     }
 
     private void checkPreviewPermission(
@@ -495,7 +506,10 @@ public class DocumentService {
                 .equals(doc.getVisibility())) {
             checkPublicDocumentsFeatureEnabled();
         } else {
-            throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+            boolean isShared = documentShareRepository.existsByDocumentIdAndSharedWithUserId(doc.getId(), currentUser.getId());
+            if (!isShared) {
+                throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+            }
         }
     }
 
