@@ -103,16 +103,21 @@ public class UserProfileService {
         Optional<PaymentOrder> latestPaidOrder = paymentOrderRepository.findFirstByUserIdAndStatusOrderByCreatedAtDesc(user.getId(), PaymentStatus.PAID);
         boolean isPremium = false;
         String subscriptionTier = "BASIC";
+        java.time.OffsetDateTime premiumExpireAt = null;
         
         if (latestPaidOrder.isPresent()) {
             PaymentOrder order = latestPaidOrder.get();
-            if (order.getPaidAt() != null && order.getPaidAt().plusMonths(1).isAfter(java.time.OffsetDateTime.now())) {
-                isPremium = true;
-                int amount = order.getAmount();
-                if (amount >= 79000) {
-                    subscriptionTier = "PREMIUM";
-                } else if (amount >= 39000) {
-                    subscriptionTier = "PRO";
+            if (order.getPaidAt() != null) {
+                java.time.OffsetDateTime calculatedExpireAt = order.getPaidAt().plusMonths(1);
+                if (calculatedExpireAt.isAfter(java.time.OffsetDateTime.now())) {
+                    isPremium = true;
+                    premiumExpireAt = calculatedExpireAt;
+                    int amount = order.getAmount();
+                    if (amount >= 79000) {
+                        subscriptionTier = "PREMIUM";
+                    } else if (amount >= 39000) {
+                        subscriptionTier = "PRO";
+                    }
                 }
             }
         }
@@ -129,6 +134,7 @@ public class UserProfileService {
                 .updatedAt(user.getUpdatedAt())
                 .isPremium(isPremium)
                 .subscriptionTier(subscriptionTier)
+                .premiumExpireAt(premiumExpireAt)
                 .build();
     }
 }
