@@ -7,6 +7,8 @@ import com.example.swp391.aistudenthub.feature.chat.dto.request.DocumentChatRequ
 import com.example.swp391.aistudenthub.feature.chat.dto.response.ChatMessageResponse;
 import com.example.swp391.aistudenthub.feature.chat.dto.response.ChatResponse;
 import com.example.swp391.aistudenthub.feature.chat.dto.response.ChatSessionResponse;
+import com.example.swp391.aistudenthub.feature.chat.dto.response.ChatQuotaResponse;
+import com.example.swp391.aistudenthub.feature.chat.service.AiQuotaService;
 import com.example.swp391.aistudenthub.feature.chat.service.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +30,14 @@ import java.util.UUID;
 public class ChatController {
 
     private final ChatService chatService;
+    private final AiQuotaService aiQuotaService;
+
+    @GetMapping("/quota")
+    @Operation(summary = "View daily AI question quota")
+    public ResponseEntity<ApiResponse<ChatQuotaResponse>> getQuota(
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(ApiResponse.success(aiQuotaService.getStatus(currentUser.getId())));
+    }
 
     @PostMapping
     @Operation(summary = "Chat thường với AI")

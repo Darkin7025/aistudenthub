@@ -31,6 +31,9 @@ class DocumentServiceContentUpdateTest {
     @Mock
     private DocumentMapper documentMapper;
 
+    @Mock
+    private DocumentProcessor documentProcessor;
+
     @InjectMocks
     private DocumentService documentService;
 

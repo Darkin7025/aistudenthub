@@ -113,6 +113,35 @@ public class DocumentProcessor {
         }
     }
 
+    /** Rebuilds chunks after extraction or manual content edits. */
+    public void reindexChunks(UUID documentId, String extractedText) {
+        try {
+            documentChunkRepository.deleteByDocumentId(documentId);
+            if (extractedText == null || extractedText.isBlank()) {
+                return;
+            }
+
+            java.util.List<com.example.swp391.aistudenthub.feature.chat.dto.TextChunk> textChunks =
+                    chunkingService.chunkText(extractedText);
+            java.util.List<com.example.swp391.aistudenthub.feature.chat.entity.DocumentChunk> docChunks = new java.util.ArrayList<>();
+            for (com.example.swp391.aistudenthub.feature.chat.dto.TextChunk tc : textChunks) {
+                docChunks.add(com.example.swp391.aistudenthub.feature.chat.entity.DocumentChunk.builder()
+                        .documentId(documentId)
+                        .chunkIndex(tc.getChunkIndex())
+                        .content(tc.getContent())
+                        .tokenCount(tc.getTokenCount())
+                        .build());
+            }
+            if (!docChunks.isEmpty()) {
+                documentChunkRepository.saveAll(docChunks);
+                log.info("Saved {} chunks for document: {}", docChunks.size(), documentId);
+            }
+        } catch (Exception e) {
+            log.error("Failed to rebuild document chunks for {}: {}", documentId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
     private byte[] downloadFile(String fileUrl) throws Exception {
         URL url = new URL(fileUrl);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
