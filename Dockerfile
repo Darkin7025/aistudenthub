@@ -2,13 +2,13 @@
 FROM maven:3.9.6-eclipse-temurin-17 AS builder
 WORKDIR /app
 COPY pom.xml .
-# Download dependencies first to cache them
-RUN mvn dependency:go-offline -B
 # Hạn chế RAM của Maven lúc Build để không bị sập trên Render
 ENV MAVEN_OPTS="-Xmx256m"
+# Download dependencies first to cache them
+RUN mvn dependency:go-offline -B
 # Copy the source code and build the application
 COPY src ./src
-RUN mvn package -DskipTests
+RUN mvn package -DskipTests -B
 
 # Stage 2: Create the runtime image
 FROM eclipse-temurin:17-jre-jammy
