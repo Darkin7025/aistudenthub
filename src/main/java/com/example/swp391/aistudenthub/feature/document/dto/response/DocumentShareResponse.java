@@ -17,6 +17,8 @@ public class DocumentShareResponse {
     private UUID documentId;
     private UUID sharedByUserId;
     private UUID sharedWithUserId;
+    private String sharedWithUserEmail;
+    private String sharedWithUserName;
     private String permission;
     private OffsetDateTime createdAt;
 }

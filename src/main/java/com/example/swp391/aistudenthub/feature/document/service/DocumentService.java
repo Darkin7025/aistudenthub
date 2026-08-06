@@ -865,6 +865,8 @@ public class DocumentService {
                 .documentId(share.getDocumentId())
                 .sharedByUserId(share.getSharedByUserId())
                 .sharedWithUserId(share.getSharedWithUserId())
+                .sharedWithUserEmail(targetUser.getEmail())
+                .sharedWithUserName(targetUser.getFullName())
                 .permission(share.getPermission())
                 .createdAt(share.getCreatedAt())
                 .build();
