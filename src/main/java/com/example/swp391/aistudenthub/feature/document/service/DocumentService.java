@@ -147,8 +147,22 @@ public class DocumentService {
 
     @Transactional(readOnly = true)
     public List<DocumentResponse> getMyDocuments(UUID userId) {
-        return documentRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId)
-                .stream()
+        List<Document> owned = documentRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
+        List<com.example.swp391.aistudenthub.feature.document.entity.DocumentShare> shares = documentShareRepository.findBySharedWithUserIdOrderByCreatedAtDesc(userId);
+        List<Document> shared = shares.stream()
+                .map(share -> documentRepository.findByIdAndDeletedAtIsNull(share.getDocumentId()).orElse(null))
+                .filter(doc -> doc != null)
+                .toList();
+
+        List<Document> allDocs = new java.util.ArrayList<>(owned);
+        for (Document d : shared) {
+            if (!allDocs.contains(d)) {
+                allDocs.add(d);
+            }
+        }
+        allDocs.sort((d1, d2) -> d2.getCreatedAt().compareTo(d1.getCreatedAt()));
+
+        return allDocs.stream()
                 .map(documentMapper::toResponse)
                 .toList();
     }
