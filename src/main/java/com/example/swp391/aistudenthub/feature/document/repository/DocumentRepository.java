@@ -21,7 +21,7 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
     long countByFolderIdAndDeletedAtIsNull(UUID folderId);
 
     @org.springframework.data.jpa.repository.Query("SELECT d FROM Document d WHERE d.deletedAt IS NULL AND " +
-            "d.userId = :userId AND " +
+            "(d.userId = :userId OR EXISTS (SELECT s FROM com.example.swp391.aistudenthub.feature.document.entity.DocumentShare s WHERE s.documentId = d.id AND s.sharedWithUserId = :userId)) AND " +
             "(:visibility IS NULL OR d.visibility = :visibility) AND " +
             "(:keyword IS NULL OR LOWER(CAST(d.title AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
             "OR LOWER(CAST(d.fileName AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
