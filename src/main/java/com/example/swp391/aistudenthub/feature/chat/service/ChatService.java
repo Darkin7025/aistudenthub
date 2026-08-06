@@ -5,6 +5,7 @@ import com.example.swp391.aistudenthub.feature.chat.dto.request.DocumentChatRequ
 import com.example.swp391.aistudenthub.feature.chat.dto.response.ChatMessageResponse;
 import com.example.swp391.aistudenthub.feature.chat.dto.response.ChatResponse;
 import com.example.swp391.aistudenthub.feature.chat.dto.response.ChatSessionResponse;
+import com.example.swp391.aistudenthub.feature.chat.dto.response.DocumentChatQuotaResponse;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,4 +18,7 @@ public interface ChatService {
     List<ChatSessionResponse> getUserSessions(UUID userId);
     List<ChatMessageResponse> getSessionMessages(UUID sessionId, UUID userId);
     void deleteSession(UUID sessionId, UUID userId);
+    DocumentChatQuotaResponse getDocumentChatQuota(UUID documentId, UUID userId);
+    ChatSessionResponse initDocumentChatSession(UUID documentId, UUID userId);
 }
+

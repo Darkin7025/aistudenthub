@@ -8,6 +8,7 @@ import com.example.swp391.aistudenthub.feature.chat.dto.response.ChatMessageResp
 import com.example.swp391.aistudenthub.feature.chat.dto.response.ChatResponse;
 import com.example.swp391.aistudenthub.feature.chat.dto.response.ChatSessionResponse;
 import com.example.swp391.aistudenthub.feature.chat.dto.response.ChatQuotaResponse;
+import com.example.swp391.aistudenthub.feature.chat.dto.response.DocumentChatQuotaResponse;
 import com.example.swp391.aistudenthub.feature.chat.service.AiQuotaService;
 import com.example.swp391.aistudenthub.feature.chat.service.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -99,5 +100,23 @@ public class ChatController {
             @AuthenticationPrincipal User currentUser) {
         chatService.deleteSession(sessionId, currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @GetMapping("/document/{documentId}/quota")
+    @Operation(summary = "Xem giới hạn hỏi AI cho một tài liệu cụ thể")
+    public ResponseEntity<ApiResponse<DocumentChatQuotaResponse>> getDocumentChatQuota(
+            @PathVariable UUID documentId,
+            @AuthenticationPrincipal User currentUser) {
+        DocumentChatQuotaResponse quota = chatService.getDocumentChatQuota(documentId, currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.success(quota));
+    }
+
+    @PostMapping("/document/{documentId}/init-session")
+    @Operation(summary = "Khởi tạo hoặc lấy chat session cho tài liệu (dùng cho auto-select từ trang chia sẻ)")
+    public ResponseEntity<ApiResponse<ChatSessionResponse>> initDocumentChatSession(
+            @PathVariable UUID documentId,
+            @AuthenticationPrincipal User currentUser) {
+        ChatSessionResponse session = chatService.initDocumentChatSession(documentId, currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.success(session));
     }
 }

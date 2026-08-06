@@ -6,6 +6,7 @@ import com.example.swp391.aistudenthub.feature.chat.dto.request.ChatRequest;
 import com.example.swp391.aistudenthub.feature.chat.dto.request.DocumentChatRequest;
 import com.example.swp391.aistudenthub.feature.chat.dto.response.ChatMessageResponse;
 import com.example.swp391.aistudenthub.feature.chat.dto.response.ChatResponse;
+import com.example.swp391.aistudenthub.feature.chat.dto.response.DocumentChatQuotaResponse;
 import com.example.swp391.aistudenthub.feature.chat.dto.response.ChatSessionResponse;
 import com.example.swp391.aistudenthub.feature.chat.entity.ChatMessage;
 import com.example.swp391.aistudenthub.feature.chat.entity.ChatSession;
@@ -26,7 +27,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.time.OffsetDateTime;
 import java.text.Normalizer;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -112,7 +112,6 @@ public class ChatServiceImpl implements ChatService {
                     "Hỏi về: " + document.getTitle(),
                     documentId
             );
-            aiQuotaService.reserveQuestion(userId);
             saveMessage(currentSession, MessageSender.USER, question);
             return currentSession;
         });
@@ -173,7 +172,6 @@ public class ChatServiceImpl implements ChatService {
                     "Hỏi về: " + document.getTitle(),
                     documentId
             );
-            aiQuotaService.reserveQuestion(userId);
             saveMessage(currentSession, MessageSender.USER, question);
             return currentSession;
         });
@@ -463,9 +461,11 @@ public class ChatServiceImpl implements ChatService {
                 });
     }
 
-    private void checkDocumentChatLimit(Document document, UUID userId) {
-        long currentCount = chatMessageRepository.countByUserIdAndDocumentIdAndSender(userId, document.getId(), MessageSender.USER);
+    // ---- Document Chat Limit helpers ----
 
+    private record DocumentChatLimitInfo(int limit, String tierName, boolean isOwner) {}
+
+    private DocumentChatLimitInfo resolveDocumentChatLimit(Document document, UUID userId) {
         boolean isOwner = document.getUserId().equals(userId);
         if (isOwner) {
             Optional<PaymentOrder> latestPaidOrder = paymentOrderRepository
@@ -484,16 +484,68 @@ public class ChatServiceImpl implements ChatService {
                     tierName = "Nâng cao";
                 }
             }
-
-            if (currentCount >= limit) {
-                throw new AppException(ErrorCode.LIMIT_EXCEEDED, String.format("Bạn đang sử dụng gói %s. Giới hạn hỏi AI là %d lần cho tài liệu này.", tierName, limit));
-            }
+            return new DocumentChatLimitInfo(limit, tierName, true);
         } else {
-            // Shared user or Public document access
-            if (currentCount >= 3) {
-                throw new AppException(ErrorCode.LIMIT_EXCEEDED, "Tài liệu chia sẻ / công khai chỉ cho phép hỏi AI tối đa 3 lần.");
+            return new DocumentChatLimitInfo(3, "Chia sẻ / Công khai", false);
+        }
+    }
+
+    private void checkDocumentChatLimit(Document document, UUID userId) {
+        long currentCount = chatMessageRepository.countByUserIdAndDocumentIdAndSender(userId, document.getId(), MessageSender.USER);
+        DocumentChatLimitInfo info = resolveDocumentChatLimit(document, userId);
+
+        if (currentCount >= info.limit()) {
+            if (info.isOwner()) {
+                throw new AppException(ErrorCode.LIMIT_EXCEEDED,
+                        String.format("Bạn đang sử dụng gói %s. Giới hạn hỏi AI là %d lần cho tài liệu này.", info.tierName(), info.limit()));
+            } else {
+                throw new AppException(ErrorCode.LIMIT_EXCEEDED,
+                        "Tài liệu chia sẻ / công khai chỉ cho phép hỏi AI tối đa 3 lần.");
             }
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentChatQuotaResponse getDocumentChatQuota(UUID documentId, UUID userId) {
+        Document document = findAccessibleDocument(documentId, userId);
+        DocumentChatLimitInfo info = resolveDocumentChatLimit(document, userId);
+        long used = chatMessageRepository.countByUserIdAndDocumentIdAndSender(userId, documentId, MessageSender.USER);
+
+        return DocumentChatQuotaResponse.builder()
+                .documentId(documentId)
+                .documentTitle(document.getTitle())
+                .isOwner(info.isOwner())
+                .tierName(info.tierName())
+                .limit(info.limit())
+                .used(used)
+                .remaining(Math.max(0, info.limit() - used))
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ChatSessionResponse initDocumentChatSession(UUID documentId, UUID userId) {
+        Document document = findAccessibleDocument(documentId, userId);
+        ensureDocumentChatCapable(document);
+
+        // Tìm session đã tồn tại cho cặp user + document
+        Optional<ChatSession> existing = chatSessionRepository
+                .findFirstByUserIdAndDocumentIdOrderByUpdatedAtDesc(userId, documentId);
+
+        ChatSession session;
+        if (existing.isPresent()) {
+            session = existing.get();
+        } else {
+            session = ChatSession.builder()
+                    .userId(userId)
+                    .documentId(documentId)
+                    .title("Hỏi về: " + document.getTitle())
+                    .build();
+            session = chatSessionRepository.save(session);
+        }
+
+        return chatMapper.toSessionResponse(session);
     }
 
     private String retrieveRelevantContext(UUID documentId, String question, String fallbackText) {

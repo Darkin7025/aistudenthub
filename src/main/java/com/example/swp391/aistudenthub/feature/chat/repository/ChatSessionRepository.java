@@ -12,6 +12,7 @@ import java.util.UUID;
 public interface ChatSessionRepository extends JpaRepository<ChatSession, UUID> {
     List<ChatSession> findByUserIdOrderByUpdatedAtDesc(UUID userId);
     Optional<ChatSession> findByIdAndUserId(UUID id, UUID userId);
+    Optional<ChatSession> findFirstByUserIdAndDocumentIdOrderByUpdatedAtDesc(UUID userId, UUID documentId);
     boolean existsByUserIdAndTitle(UUID userId, String title);
 
     // ---- Admin / Dashboard ----
