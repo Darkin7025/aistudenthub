@@ -29,9 +29,11 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.time.OffsetDateTime;
 import java.text.Normalizer;
 import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.Optional;
 import java.util.UUID;
+import com.example.swp391.aistudenthub.feature.payment.repository.PaymentOrderRepository;
+import com.example.swp391.aistudenthub.feature.payment.entity.PaymentOrder;
+import com.example.swp391.aistudenthub.feature.payment.enums.PaymentStatus;
 
 @Slf4j
 @Service
@@ -52,7 +54,9 @@ public class ChatServiceImpl implements ChatService {
     private final DocumentPreviewResolver previewResolver;
     private final SystemConfigRepository systemConfigRepository;
     private final com.example.swp391.aistudenthub.feature.chat.repository.DocumentChunkRepository documentChunkRepository;
-    private final AiQuotaService aiQuotaService;
+    private final com.example.swp391.aistudenthub.feature.auth.repository.UserRepository userRepository;
+    private final com.example.swp391.aistudenthub.feature.document.repository.DocumentShareRepository documentShareRepository;
+    private final PaymentOrderRepository paymentOrderRepository;
 
     @Override
     public ChatResponse chat(ChatRequest request, UUID userId) {
@@ -93,8 +97,9 @@ public class ChatServiceImpl implements ChatService {
     public ChatResponse chatWithDocument(UUID documentId, DocumentChatRequest request, UUID userId) {
         checkAiChatFeatureEnabled();
         String question = requireText(request.getQuestion());
-        Document document = findOwnedDocument(documentId, userId);
+        Document document = findAccessibleDocument(documentId, userId);
         ensureDocumentChatCapable(document);
+        checkDocumentChatLimit(document, userId);
 
         ChatSession session = transactionTemplate.execute(status -> {
             ChatSession currentSession = getOrCreateSession(
@@ -153,8 +158,9 @@ public class ChatServiceImpl implements ChatService {
     public SseEmitter streamChatWithDocument(UUID documentId, DocumentChatRequest request, UUID userId) {
         checkAiChatFeatureEnabled();
         String question = requireText(request.getQuestion());
-        Document document = findOwnedDocument(documentId, userId);
+        Document document = findAccessibleDocument(documentId, userId);
         ensureDocumentChatCapable(document);
+        checkDocumentChatLimit(document, userId);
 
         ChatSession session = transactionTemplate.execute(status -> {
             ChatSession currentSession = getOrCreateSession(
@@ -289,15 +295,31 @@ public class ChatServiceImpl implements ChatService {
                 .orElseThrow(() -> new AppException(ErrorCode.CHAT_SESSION_NOT_FOUND));
     }
 
-    private Document findOwnedDocument(UUID documentId, UUID userId) {
+    private Document findAccessibleDocument(UUID documentId, UUID userId) {
         Document document = documentRepository.findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DOCUMENT_NOT_FOUND));
 
-        if (!document.getUserId().equals(userId)) {
-            throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
+        if (document.getUserId().equals(userId)) {
+            return document;
         }
 
-        return document;
+        com.example.swp391.aistudenthub.feature.auth.entity.User user = userRepository.findById(userId)
+                .orElse(null);
+
+        if (user != null && com.example.swp391.aistudenthub.feature.auth.entity.Role.ADMIN.equals(user.getRole())) {
+            return document;
+        }
+
+        if (com.example.swp391.aistudenthub.feature.document.enums.DocumentVisibility.PUBLIC.equals(document.getVisibility())) {
+            return document;
+        }
+
+        boolean isShared = documentShareRepository.existsByDocumentIdAndSharedWithUserId(documentId, userId);
+        if (isShared) {
+            return document;
+        }
+
+        throw new AppException(ErrorCode.FORBIDDEN_ACCESS);
     }
 
     private void attachDocumentContext(ChatSession session, UUID documentId) {
@@ -435,6 +457,39 @@ public class ChatServiceImpl implements ChatService {
                         throw new AppException(ErrorCode.FEATURE_DISABLED);
                     }
                 });
+    }
+
+    private void checkDocumentChatLimit(Document document, UUID userId) {
+        long currentCount = chatMessageRepository.countByUserIdAndDocumentIdAndSender(userId, document.getId(), MessageSender.USER);
+
+        boolean isOwner = document.getUserId().equals(userId);
+        if (isOwner) {
+            Optional<PaymentOrder> latestPaidOrder = paymentOrderRepository
+                    .findFirstByUserIdAndStatusOrderByCreatedAtDesc(userId, PaymentStatus.PAID);
+
+            int limit = 5;
+            String tierName = "Cơ bản";
+
+            if (latestPaidOrder.isPresent()) {
+                int amount = latestPaidOrder.get().getAmount();
+                if (amount >= 79000) {
+                    limit = 15;
+                    tierName = "Chuyên gia";
+                } else if (amount >= 39000) {
+                    limit = 10;
+                    tierName = "Nâng cao";
+                }
+            }
+
+            if (currentCount >= limit) {
+                throw new AppException(ErrorCode.LIMIT_EXCEEDED, String.format("Bạn đang sử dụng gói %s. Giới hạn hỏi AI là %d lần cho tài liệu này.", tierName, limit));
+            }
+        } else {
+            // Shared user or Public document access
+            if (currentCount >= 3) {
+                throw new AppException(ErrorCode.LIMIT_EXCEEDED, "Tài liệu chia sẻ / công khai chỉ cho phép hỏi AI tối đa 3 lần.");
+            }
+        }
     }
 
     private String retrieveRelevantContext(UUID documentId, String question, String fallbackText) {
