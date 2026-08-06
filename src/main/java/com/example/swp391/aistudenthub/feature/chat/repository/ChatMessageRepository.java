@@ -16,6 +16,10 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> 
 
         long countBySessionId(UUID sessionId);
 
+        @Query("SELECT COUNT(m) FROM ChatMessage m WHERE m.session.userId = :userId AND m.session.documentId = :documentId AND m.sender = :sender")
+        long countByUserIdAndDocumentIdAndSender(@Param("userId") UUID userId, @Param("documentId") UUID documentId, @Param("sender") com.example.swp391.aistudenthub.feature.chat.enums.MessageSender sender);
+
+
         @Query("SELECT m.session.id, COUNT(m.id) FROM ChatMessage m " +
                         "WHERE m.session.id IN :sessionIds GROUP BY m.session.id")
         List<Object[]> countBySessionIds(@Param("sessionIds") Collection<UUID> sessionIds);
