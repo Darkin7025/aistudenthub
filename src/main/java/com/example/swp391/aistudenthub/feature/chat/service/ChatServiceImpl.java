@@ -28,8 +28,11 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.OffsetDateTime;
 import java.text.Normalizer;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import com.example.swp391.aistudenthub.feature.payment.repository.PaymentOrderRepository;
 import com.example.swp391.aistudenthub.feature.payment.entity.PaymentOrder;
@@ -57,6 +60,7 @@ public class ChatServiceImpl implements ChatService {
     private final com.example.swp391.aistudenthub.feature.auth.repository.UserRepository userRepository;
     private final com.example.swp391.aistudenthub.feature.document.repository.DocumentShareRepository documentShareRepository;
     private final PaymentOrderRepository paymentOrderRepository;
+    private final AiQuotaService aiQuotaService;
 
     @Override
     public ChatResponse chat(ChatRequest request, UUID userId) {
