@@ -2,6 +2,7 @@ package com.example.swp391.aistudenthub;
 
 import com.example.swp391.aistudenthub.feature.auth.service.EmailService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -16,6 +17,7 @@ class AistudenthubApplicationTests {
 	}
 
 	@Test
+	@Disabled("Requires explicit SMTP credentials and an intentional external email recipient")
 	void testSendEmail() throws InterruptedException {
 		// Thay đổi email nhận bên dưới để test thực tế
 		String testRecipient = "cuongntse172349@fpt.edu.vn";

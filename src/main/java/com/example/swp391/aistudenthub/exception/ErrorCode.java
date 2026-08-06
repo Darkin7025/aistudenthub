@@ -34,6 +34,7 @@ public enum ErrorCode {
     FORBIDDEN_ACCESS("Bạn không có quyền thực hiện thao tác này", HttpStatus.FORBIDDEN),
 
     // Chat
+    CHAT_SESSION_MODE_MISMATCH("This chat session is linked to a document. Use document chat for this session.", HttpStatus.BAD_REQUEST),
     CHAT_SESSION_NOT_FOUND("Cuộc hội thoại không tồn tại", HttpStatus.NOT_FOUND),
     CHAT_SESSION_DOCUMENT_MISMATCH("Cuộc hội thoại đang gắn với tài liệu khác", HttpStatus.BAD_REQUEST),
     AI_SERVICE_UNAVAILABLE("Dịch vụ AI tạm thời không khả dụng, vui lòng thử lại sau", HttpStatus.SERVICE_UNAVAILABLE),

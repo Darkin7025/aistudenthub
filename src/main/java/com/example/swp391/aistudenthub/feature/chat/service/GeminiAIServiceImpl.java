@@ -73,7 +73,7 @@ public class GeminiAIServiceImpl implements AIService {
 
         try {
             log.debug("Calling Gemini API with model: {}", model);
-            return callGeminiApiWithRetry(prompt);
+            return callWithRetry(() -> callGeminiApi(prompt));
         } catch (IllegalStateException e) {
             throw e;
         } catch (Exception e) {
@@ -82,18 +82,18 @@ public class GeminiAIServiceImpl implements AIService {
         }
     }
 
-    private String callGeminiApiWithRetry(String prompt) throws Exception {
-        int maxRetries = 3;
-        long backoff = 1000;
+    private String callWithRetry(java.util.concurrent.Callable<String> apiCall) throws Exception {
+        int maxRetries = 4;
+        long backoff = 2000;
         Exception lastException = null;
 
         for (int i = 0; i < maxRetries; i++) {
             try {
-                return callGeminiApi(prompt);
+                return apiCall.call();
             } catch (Exception e) {
                 lastException = e;
-                if (e.getMessage() != null && e.getMessage().contains("status 503")) {
-                    log.warn("Gemini API 503 error. Retrying {}/{} after {}ms...", i + 1, maxRetries, backoff);
+                if (e.getMessage() != null && (e.getMessage().contains("status 503") || e.getMessage().contains("status 429"))) {
+                    log.warn("Gemini API overloaded (503/429). Retrying {}/{} after {}ms...", i + 1, maxRetries, backoff);
                     Thread.sleep(backoff);
                     backoff *= 2;
                 } else {
@@ -177,7 +177,7 @@ public class GeminiAIServiceImpl implements AIService {
         }
         try {
             log.debug("Calling Gemini Vision API for image: {}", imageUrl);
-            return callGeminiVisionApi(imageUrl, question);
+            return callWithRetry(() -> callGeminiVisionApi(imageUrl, question));
         } catch (Exception e) {
             log.error("Gemini Vision API request failed: {}", e.getMessage());
             return FRIENDLY_UNAVAILABLE_MESSAGE;

@@ -27,6 +27,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.OffsetDateTime;
+import java.text.Normalizer;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -69,6 +70,7 @@ public class ChatServiceImpl implements ChatService {
                     buildSessionTitle(message),
                     null
             );
+            aiQuotaService.reserveQuestion(userId);
             saveMessage(currentSession, MessageSender.USER, message);
             return currentSession;
         });
@@ -106,6 +108,7 @@ public class ChatServiceImpl implements ChatService {
                     "Hỏi về: " + document.getTitle(),
                     documentId
             );
+            aiQuotaService.reserveQuestion(userId);
             saveMessage(currentSession, MessageSender.USER, question);
             return currentSession;
         });
@@ -140,6 +143,7 @@ public class ChatServiceImpl implements ChatService {
                     buildSessionTitle(message),
                     null
             );
+            aiQuotaService.reserveQuestion(userId);
             saveMessage(currentSession, MessageSender.USER, message);
             return currentSession;
         });
@@ -165,6 +169,7 @@ public class ChatServiceImpl implements ChatService {
                     "Hỏi về: " + document.getTitle(),
                     documentId
             );
+            aiQuotaService.reserveQuestion(userId);
             saveMessage(currentSession, MessageSender.USER, question);
             return currentSession;
         });
@@ -268,6 +273,9 @@ public class ChatServiceImpl implements ChatService {
     private ChatSession getOrCreateSession(UUID sessionId, UUID userId, String initialTitle, UUID documentId) {
         if (sessionId != null) {
             ChatSession session = findSessionForUser(sessionId, userId);
+            if (documentId == null && session.getDocumentId() != null) {
+                throw new AppException(ErrorCode.CHAT_SESSION_MODE_MISMATCH);
+            }
             if (documentId != null) {
                 attachDocumentContext(session, documentId);
             }
@@ -492,14 +500,20 @@ public class ChatServiceImpl implements ChatService {
                 return fallbackText;
             }
             
-            // Simple keyword-matching relevance ranking
-            String[] keywords = question.toLowerCase().split("\\s+");
+            List<String> keywords = tokenizeForSearch(question);
             java.util.List<com.example.swp391.aistudenthub.feature.chat.entity.DocumentChunk> scored = new java.util.ArrayList<>(chunks);
             scored.sort((c1, c2) -> {
-                long score1 = countMatches(c1.getContent().toLowerCase(), keywords);
-                long score2 = countMatches(c2.getContent().toLowerCase(), keywords);
+                long score1 = countMatches(c1.getContent(), keywords);
+                long score2 = countMatches(c2.getContent(), keywords);
+                if (score1 == score2) {
+                    return Integer.compare(c1.getChunkIndex(), c2.getChunkIndex());
+                }
                 return Long.compare(score2, score1); // Descending order of relevance
             });
+
+            if (!keywords.isEmpty() && countMatches(scored.get(0).getContent(), keywords) == 0) {
+                return "[No relevant content was found in the uploaded document.]";
+            }
             
             // Collect the top 3 chunks (approx ~2400 words max)
             StringBuilder sb = new StringBuilder();
@@ -514,13 +528,35 @@ public class ChatServiceImpl implements ChatService {
         }
     }
 
-    private long countMatches(String content, String[] keywords) {
+    private long countMatches(String content, List<String> keywords) {
         long count = 0;
+        String normalizedContent = normalizeForSearch(content);
         for (String kw : keywords) {
-            if (kw.length() > 2 && content.contains(kw)) {
+            if (normalizedContent.contains(kw)) {
                 count++;
             }
         }
         return count;
+    }
+
+    private List<String> tokenizeForSearch(String value) {
+        Set<String> stopWords = Set.of("and", "the", "for", "with", "what", "this", "that", "cua", "hoi", "ve", "la", "va", "cho", "mot", "nhung", "cac");
+        return List.of(normalizeForSearch(value).split("\\s+"))
+                .stream()
+                .filter(term -> term.length() >= 3 && !stopWords.contains(term))
+                .distinct()
+                .toList();
+    }
+
+    private String normalizeForSearch(String value) {
+        if (value == null) {
+            return "";
+        }
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replace("đ", "d")
+                .replace("Đ", "D")
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT);
+        return normalized.replaceAll("[^\\p{L}\\p{Nd}]+", " ").trim();
     }
 }

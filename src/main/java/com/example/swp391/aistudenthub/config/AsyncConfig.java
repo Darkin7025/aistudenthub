@@ -1,5 +1,6 @@
 package com.example.swp391.aistudenthub.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -11,13 +12,22 @@ import java.util.concurrent.Executor;
 @EnableAsync
 public class AsyncConfig {
 
+    @Value("${thread-pool.core-size:2}")
+    private int corePoolSize;
+
+    @Value("${thread-pool.max-size:4}")
+    private int maxPoolSize;
+
+    @Value("${thread-pool.queue-capacity:200}")
+    private int queueCapacity;
+
     @Bean(name = "documentTaskExecutor")
     public Executor documentTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        // Giới hạn luồng tối đa là 1 để xử lý tuần tự nhằm bảo vệ bộ nhớ RAM dưới 512MB
-        executor.setCorePoolSize(1);
-        executor.setMaxPoolSize(1);
-        executor.setQueueCapacity(100);
+        // Cấu hình tăng luồng xử lý đồng thời để tận dụng tài nguyên sau khi nâng cấp cấu hình Render
+        executor.setCorePoolSize(corePoolSize);
+        executor.setMaxPoolSize(maxPoolSize);
+        executor.setQueueCapacity(queueCapacity);
         executor.setThreadNamePrefix("DocExtract-");
         executor.initialize();
         return executor;

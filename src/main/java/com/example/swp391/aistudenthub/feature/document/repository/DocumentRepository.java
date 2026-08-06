@@ -23,7 +23,14 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
     @org.springframework.data.jpa.repository.Query("SELECT d FROM Document d WHERE d.deletedAt IS NULL AND " +
             "d.userId = :userId AND " +
             "(:visibility IS NULL OR d.visibility = :visibility) AND " +
-            "(:keyword IS NULL OR LOWER(CAST(d.title AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR LOWER(CAST(d.description AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))) AND " +
+            "(:keyword IS NULL OR LOWER(CAST(d.title AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
+            "OR LOWER(CAST(d.fileName AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
+            "OR LOWER(CAST(d.originalFileName AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
+            "OR LOWER(CAST(d.description AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
+            "OR LOWER(CAST(d.subject AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
+            "OR LOWER(CAST(d.major AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
+            "OR LOWER(CAST(d.documentType AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
+            "OR LOWER(CAST(d.extractedText AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))) AND " +
             "(:subject IS NULL OR d.subject = :subject) AND " +
             "(:major IS NULL OR d.major = :major) AND " +
             "(:folderId IS NULL OR d.folderId = :folderId)")

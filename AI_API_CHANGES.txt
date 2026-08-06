@@ -1,0 +1,214 @@
+AIStudentHUB - CAC API VUA DUOC BO SUNG VA SUA DOI
+=================================================
+
+Muc dich cua file nay
+---------------------
+File nay mo ta cac API lien quan den feedback cua giang vien:
+tim kiem tai lieu ca nhan, chat AI tu do, chat AI theo tai lieu,
+gioi han so cau hoi AI va cach cap nhat kien thuc tai lieu.
+
+Luu y chung
+-----------
+- Tat ca API duoi day can JWT, tru khi co ghi chu khac.
+- Header can dung:
+  Authorization: Bearer <access_token>
+- Base URL local:
+  http://localhost:8080
+
+
+1. TIM KIEM TAI LIEU CA NHAN
+============================
+
+GET /api/v1/documents
+
+Chuc nang:
+- Tim kiem va loc cac tai lieu do user hien tai upload.
+- User khong the nhin thay tai lieu rieng tu cua nguoi khac.
+- Keyword duoc tim trong:
+  + Tieu de tai lieu
+  + Ten file
+  + Mo ta
+  + Mon hoc
+  + Nganh hoc
+  + Loai tai lieu
+  + Noi dung da trich xuat tu file
+
+Query parameters:
+- keyword: tu khoa tim kiem, khong bat buoc
+- subject: loc theo mon hoc, khong bat buoc
+- major: loc theo nganh hoc, khong bat buoc
+- folderId: loc theo thu muc, khong bat buoc
+- page: so trang, bat dau tu 0, mac dinh 0
+- size: so tai lieu moi trang, mac dinh 10, toi da 50
+
+Vi du:
+GET /api/v1/documents?keyword=java&page=0&size=10
+
+API nay dung cho:
+- O tim kiem tai lieu cua user.
+- O thu vien tai lieu ca nhan.
+- Cho phep user tim ca theo noi dung ben trong file sau khi file da xu ly xong.
+
+
+2. CHAT AI TU DO
+================
+
+POST /api/v1/chat
+
+Chuc nang:
+- Cho phep user hoi AI ve cac chu de hoc tap noi chung.
+- API khong gui noi dung tai lieu vao prompt.
+- Co the tiep tuc mot phien chat bang sessionId.
+
+Request body:
+{
+  "message": "Giai thich su khac nhau giua ArrayList va LinkedList",
+  "sessionId": null
+}
+
+Quy tac bao mat:
+- Neu sessionId dang gan voi mot tai lieu, API tu choi request nay.
+- User phai dung API chat theo tai lieu de tiep tuc phien do.
+
+
+3. CHAT AI THEO TAI LIEU
+========================
+
+POST /api/v1/chat/document/{documentId}
+
+Chuc nang:
+- Tra loi cau hoi dua tren mot tai lieu cu the.
+- Tai lieu phai thuoc user hien tai.
+- AI chi duoc su dung context lay tu tai lieu.
+- Neu tai lieu khong co thong tin phu hop, AI phai noi rang tai lieu
+  khong du thong tin thay vi tu suy dien tu kien thuc ben ngoai.
+
+Request body:
+{
+  "question": "Tai lieu dinh nghia encapsulation nhu the nao?",
+  "sessionId": null
+}
+
+Vi du:
+POST /api/v1/chat/document/8d2b8d3b-4a4a-4b9d-8b55-111111111111
+
+Quy tac:
+- documentId khong ton tai: tra loi loi tai lieu khong ton tai.
+- Tai lieu cua user khac: tu choi truy cap.
+- Tai lieu chua trich xuat xong: chua cho phep hoi AI.
+- Khong the dung session cua tai lieu A de hoi tai lieu B.
+
+
+4. CHAT AI DANG STREAM
+======================
+
+POST /api/v1/chat/stream
+POST /api/v1/chat/document/{documentId}/stream
+
+Chuc nang:
+- Hai API co cung quy tac voi chat thuong va chat theo tai lieu.
+- Ket qua tra ve theo Server-Sent Events (SSE), phu hop de hien thi cau tra
+  loi tung phan tren giao dien.
+- API stream cung bi ap dung gioi han quota AI.
+
+Su dung:
+- /chat/stream cho cau hoi AI tu do.
+- /chat/document/{documentId}/stream cho cau hoi theo tai lieu.
+
+
+5. XEM QUOTA HOI AI
+===================
+
+GET /api/v1/chat/quota
+
+Chuc nang:
+- Tra ve so cau hoi AI user da dung trong ngay.
+- Tra ve so cau hoi con lai va thoi diem reset.
+
+Response mau:
+{
+  "dailyLimit": 20,
+  "used": 3,
+  "remaining": 17,
+  "resetAt": "2026-08-04T00:00:00+07:00"
+}
+
+Quy tac quota:
+- Mac dinh moi tai khoan duoc hoi 20 cau moi ngay.
+- Quota dem so message cua user, khong phai so token output cua Gemini.
+- Khi dat gioi han, API chat tra loi loi LIMIT_EXCEEDED.
+- Quota duoc reset vao ngay moi theo gio he thong.
+- He thong khoa theo user khi kiem tra quota de tranh hai request dong thoi
+  cung vuot qua gioi han.
+
+
+6. ADMIN THAY DOI GIOI HAN AI
+=============================
+
+PUT /api/v1/admin/system-config
+
+Quyen:
+- Chi ADMIN duoc goi API nay.
+
+Chuc nang:
+- Thay doi cau hinh he thong ma khong can sua code.
+- Dung de thay doi so cau hoi AI toi da moi ngay.
+
+Request body:
+{
+  "configs": [
+    {
+      "configKey": "system.ai_daily_question_limit",
+      "configValue": "50"
+    }
+  ]
+}
+
+Gia tri hop le:
+- Tu 1 den 10000.
+- Vi du 50 nghia la moi tai khoan duoc hoi toi da 50 cau trong mot ngay.
+
+
+7. UPLOAD VA CAP NHAT NOI DUNG TAI LIEU
+=======================================
+
+POST /api/v1/documents/upload
+
+Chuc nang lien quan den AI:
+- Upload file len Cloudinary.
+- Tao tai lieu trong database voi trang thai PROCESSING.
+- Chay tien trinh nen de trich xuat text.
+- Chia text thanh cac chunk va luu vao bang document_chunks.
+
+PUT /api/v1/documents/{documentId}/content
+
+Chuc nang:
+- Cap nhat noi dung text cua tai lieu.
+- Sau khi cap nhat, chunk cu bi xoa va chunk moi duoc tao lai.
+- Muc dich la tranh AI tra loi bang noi dung cu.
+
+PUT /api/v1/documents/{documentId}
+
+Chuc nang:
+- Cap nhat thong tin tai lieu.
+- Neu request co extractedText thi he thong cung tao lai cac chunk AI.
+
+
+8. AI HOC TAI LIEU NHU THE NAO
+==============================
+
+AIStudentHUB dang dung RAG, khong fine-tuning Gemini.
+
+Luong xu ly:
+1. Upload file.
+2. Trich xuat noi dung tu TXT, PDF va Office.
+3. Chia noi dung thanh chunk khoang 800 tu, overlap 150 tu.
+4. Luu cac chunk vao document_chunks.
+5. Khi user hoi, he thong tim cac chunk co tu khoa lien quan.
+6. Chon toi da 3 chunk phu hop nhat.
+7. Gui cac chunk nay cung voi cau hoi cho Gemini.
+8. Gemini tao cau tra loi dua tren context da gui.
+
+Noi dung tai lieu khong duoc dung de train lai model Gemini.
+He thong chi truy xuat noi dung phu hop tai thoi diem user dat cau hoi.
+

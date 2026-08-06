@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.time.OffsetDateTime;
 
 @Repository
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> {

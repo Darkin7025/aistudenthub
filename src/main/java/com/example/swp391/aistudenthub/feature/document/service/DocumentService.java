@@ -33,6 +33,8 @@ import com.example.swp391.aistudenthub.feature.payment.repository.PaymentOrderRe
 import com.example.swp391.aistudenthub.feature.payment.enums.PaymentStatus;
 import com.example.swp391.aistudenthub.feature.payment.entity.PaymentOrder;
 import java.util.Optional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -109,8 +111,13 @@ public class DocumentService {
         Document saved = documentRepository.save(doc);
         log.info("Document saved (PROCESSING): id={}, user={}", saved.getId(), userId);
 
-        // Kích hoạt trích xuất văn bản ngầm bất đồng bộ
-        documentProcessor.processDocumentText(saved.getId());
+        // Kích hoạt trích xuất văn bản ngầm bất đồng bộ sau khi transaction đã commit
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                documentProcessor.processDocumentText(saved.getId());
+            }
+        });
 
         return documentMapper.toResponse(saved);
     }
@@ -255,6 +262,7 @@ public class DocumentService {
 
         if (request.getExtractedText() != null) {
             doc.setExtractedText(request.getExtractedText());
+            documentProcessor.reindexChunks(documentId, request.getExtractedText());
         }
 
         Document saved = documentRepository.save(doc);
@@ -274,6 +282,7 @@ public class DocumentService {
         }
 
         doc.setExtractedText(request.getContent());
+        documentProcessor.reindexChunks(documentId, request.getContent());
         Document saved = documentRepository.save(doc);
         log.info("Document content updated: id={}, user={}", documentId, requesterId);
         return documentMapper.toResponse(saved);
