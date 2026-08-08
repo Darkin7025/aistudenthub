@@ -2,8 +2,8 @@
 FROM maven:3.9.6-eclipse-temurin-17 AS builder
 WORKDIR /app
 COPY pom.xml .
-# Hạn chế RAM của Maven lúc Build để không bị sập trên Render
-ENV MAVEN_OPTS="-Xmx256m"
+# Standard Tier (2GB RAM, 1 CPU) — cho phép Maven dùng nhiều RAM hơn để build nhanh hơn
+ENV MAVEN_OPTS="-Xmx1g"
 # Download dependencies first to cache them
 RUN mvn dependency:go-offline -B
 # Copy the source code and build the application
@@ -19,5 +19,5 @@ COPY --from=builder /app/target/*.jar app.jar
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Run the application with optimized settings for Render Free Tier (512MB RAM, 0.1 CPU) to prevent OOM
-ENTRYPOINT ["java", "-XX:+UseSerialGC", "-Xss256k", "-XX:MaxRAMPercentage=60.0", "-XX:MaxMetaspaceSize=128m", "-XX:TieredStopAtLevel=1", "-noverify", "-jar", "app.jar"]
+# Run the application optimized for Standard Tier (2GB RAM, 1 CPU)
+ENTRYPOINT ["java", "-XX:+UseG1GC", "-XX:MaxRAMPercentage=75.0", "-XX:MaxMetaspaceSize=256m", "-jar", "app.jar"]
